@@ -100,11 +100,14 @@ namespace ZabbixTrayMonitor
                 return;
             }
 
+            var existingConfig = _configService.Load(); // fürs Severity-mapping, damit die Werte nicht überschrieben werden weil wir sie (noch?) nicht anzeigen
             var config = new ZabbixConfig
             {
                 ZabbixUrl = ZabbixUrlTextBox.Text.Trim().TrimEnd('/'), //sicherstellen dass bei der URl keine doppelten Slahes sind
                 PollIntervalSeconds = pollIntervalSeconds,
-                IgnoreCertificateErrors = IgnoreCertificateErrorsCheckBox.IsChecked == true
+                IgnoreCertificateErrors = IgnoreCertificateErrorsCheckBox.IsChecked == true,
+                WarningSeverityThreshold = existingConfig.WarningSeverityThreshold,
+                ErrorSeverityThreshold = existingConfig.ErrorSeverityThreshold
             };
 
             var token = ApiTokenTextBox.Password.Trim();
