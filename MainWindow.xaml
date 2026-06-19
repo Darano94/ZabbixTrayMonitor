@@ -20,12 +20,14 @@
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu>
                     <MenuItem 
-                        Header="Aktualisieren" />
+                        Header="Aktualisieren"
+                         Click="TrayIcon_Refresh_Click" />
                     <MenuItem 
                         Header="Probleme anzeigen" />
                     <Separator />
                     <MenuItem 
-                        Header="Einstellungen" />
+                        Header="Einstellungen" 
+                        Click="TrayIcon_Settings_Click"/>
                     <Separator />
                     <MenuItem 
                         Header="Beenden" 
