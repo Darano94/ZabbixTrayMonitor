@@ -6,12 +6,15 @@
         xmlns:local="clr-namespace:ZabbixTrayMonitor"
         mc:Ignorable="d"
         Title="Zabbix Einstellungen"
-        Height="280"
+        Height="330"
         Width="420"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize">
     <Grid Margin="20">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -22,29 +25,47 @@
         <TextBlock Text="Zabbix URL" />
 
         <TextBox x:Name="ZabbixUrlTextBox"
-             Grid.Row="1"
-             Margin="0,8,0,16"
-             Height="28" />
+            Grid.Row="1"
+            Margin="0,8,0,16"
+            Height="28" />
 
         <TextBlock Grid.Row="2"
-               Text="API Token" />
+           Text="API Token" />
 
         <PasswordBox x:Name="ApiTokenTextBox"
-                 Grid.Row="3"
-                 Margin="0,8,0,0"
-                 Height="28" />
+            Grid.Row="3"
+            Margin="0,8,0,0"
+            Height="28" />
 
-        <StackPanel Grid.Row="4"
-                Orientation="Horizontal"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Bottom"
-                Margin="0,20,0,0">
+        <CheckBox x:Name="IgnoreCertificateErrorsCheckBox"
+            Grid.Row="4"
+            Content="SSL-Zertifikatsfehler ignorieren"
+            Margin="0,12,0,0" />
 
+        <TextBlock Grid.Row="5"
+            Text="Abfrageintervall in Sekunden"
+            Margin="0,14,0,0" />
+
+        <TextBox x:Name="PollIntervalSecondsTextBox"
+            Grid.Row="6"
+            Margin="0,8,0,0"
+            Height="28"
+            Text="60" />
+
+        <StackPanel Grid.Row="7"
+            Orientation="Horizontal"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Margin="0,20,0,0">
+
+            <Button Content="Verbindung testen"
+                Width="130"
+                Margin="0,0,8,0"
+                Click="TestConnection_Click" />
             <Button Content="Abbrechen"
                 Width="90"
                 Margin="0,0,8,0"
                 Click="Cancel_Click" />
-
             <Button Content="Speichern"
                 Width="90"
                 Click="Save_Click" />
