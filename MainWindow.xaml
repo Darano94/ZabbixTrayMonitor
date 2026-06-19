@@ -4,9 +4,34 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ZabbixTrayMonitor"
+        xmlns:tb="http://www.hardcodet.net/taskbar"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Zabbix Tray Monitor" 
+        Height="450" 
+        Width="800"
+        ShowInTaskbar="False"
+        WindowState="Minimized"
+        Visibility="Hidden">
     <Grid>
-
+        <tb:TaskbarIcon 
+            x:Name="TrayIcon" 
+            ToolTipText="~~tbd Platzhalter~~~"
+            IconSource="/Assets/tray-unknown.ico">
+            <tb:TaskbarIcon.ContextMenu>
+                <ContextMenu>
+                    <MenuItem 
+                        Header="Aktualisieren" />
+                    <MenuItem 
+                        Header="Probleme anzeigen" />
+                    <Separator />
+                    <MenuItem 
+                        Header="Einstellungen" />
+                    <Separator />
+                    <MenuItem 
+                        Header="Beenden" 
+                        Click="TrayIcon_Exit_Click" />
+                </ContextMenu>
+            </tb:TaskbarIcon.ContextMenu>
+        </tb:TaskbarIcon>
     </Grid>
 </Window>

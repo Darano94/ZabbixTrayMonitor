@@ -19,6 +19,14 @@ namespace ZabbixTrayMonitor
         public MainWindow()
         {
             InitializeComponent();
+
+            Hide(); // Mainframe ausblenden
+        }
+
+        private void TrayIcon_Exit_Click(object sender, RoutedEventArgs e)
+        {
+            TrayIcon.Dispose();
+            Application.Current.Shutdown();
         }
     }
 }
