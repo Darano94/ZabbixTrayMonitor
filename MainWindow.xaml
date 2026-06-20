@@ -16,18 +16,24 @@
         <tb:TaskbarIcon 
             x:Name="TrayIcon" 
             ToolTipText="~~tbd Platzhalter~~~"
-            IconSource="/Assets/tray-unknown.ico">
+            IconSource="/Assets/tray-unknown.ico"
+            TrayLeftMouseUp="TrayIcon_ShowProblems_Click"
+            TrayRightMouseDown="TrayIcon_RightMouseDown">
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu>
                     <MenuItem 
                         Header="Aktualisieren"
                          Click="TrayIcon_Refresh_Click" />
                     <MenuItem 
-                        Header="Probleme anzeigen" />
+                        Header="Probleme anzeigen" 
+                        Click="TrayIcon_ShowProblems_Click" />
                     <Separator />
                     <MenuItem 
                         Header="Einstellungen" 
                         Click="TrayIcon_Settings_Click"/>
+                    <MenuItem
+                        Header="Info"
+                        Click="TrayIcon_Info_Click" />
                     <Separator />
                     <MenuItem 
                         Header="Beenden" 
@@ -37,3 +43,4 @@
         </tb:TaskbarIcon>
     </Grid>
 </Window>
+ 

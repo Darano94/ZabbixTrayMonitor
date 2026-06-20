@@ -6,12 +6,16 @@ Kleiner Windows Tray Client für Zabbix
 
 `%AppData%\ZabbixTrayMonitor\config.json`
 {
-  "ZabbixUrl": "https://zabbix.example.local",
-  "PollIntervalSeconds": 60,
-  "IgnoreCertificateErrors": false,
+  "ZabbixUrl": "https://zabbix.home",
+  "ZabbixDashboardUrl": "https://zabbix.home/zabbix.php?action=dashboard.view\u0026dashboardid=407",
+  "PollIntervalSeconds": 10,
+  "IgnoreCertificateErrors": true,
   "WarningSeverityThreshold": 2,
-  "ErrorSeverityThreshold": 4
+  "ErrorSeverityThreshold": 4,
+  "UseDarkMode": true
 }
+
+
 
 ## Severity Mapping
 

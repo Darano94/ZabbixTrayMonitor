@@ -6,69 +6,157 @@
         xmlns:local="clr-namespace:ZabbixTrayMonitor"
         mc:Ignorable="d"
         Title="Zabbix Einstellungen"
-        Height="330"
-        Width="420"
+        SizeToContent="Height"
+        Width="440"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize">
-    <Grid Margin="20">
+        ResizeMode="NoResize"
+        Background="{DynamicResource WindowBackgroundBrush}">
+    <Grid Margin="6" MinHeight="260">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Zabbix URL" />
+        <TextBlock Text="Einstellungen"
+                   FontSize="18"
+                   FontWeight="Bold"
+                   Foreground="{DynamicResource PrimaryTextBrush}" />
 
-        <TextBox x:Name="ZabbixUrlTextBox"
-            Grid.Row="1"
-            Margin="0,8,0,16"
-            Height="28" />
+        <Grid Grid.Row="1" Margin="0,6,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="160" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-        <TextBlock Grid.Row="2"
-           Text="API Token" />
+            <Grid Grid.Column="0" Grid.ColumnSpan="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" /> 
+                    <RowDefinition Height="Auto" /> 
+                    <RowDefinition Height="Auto" /> 
+                    <RowDefinition Height="Auto" />
+                <RowDefinition Height="4" /> 
+                    <RowDefinition Height="Auto" /> 
+                </Grid.RowDefinitions>
 
-        <PasswordBox x:Name="ApiTokenTextBox"
-            Grid.Row="3"
-            Margin="0,8,0,0"
-            Height="28" />
+                <!-- Zabbix URL -->
+                <TextBlock 
+                    Grid.Row="0" 
+                    Grid.Column="0" 
+                    Foreground="{DynamicResource SecondaryTextBrush}" 
+                    Margin="0,6,0,2" 
+                    VerticalAlignment="Center">
+                    <Run Text="Zabbix URL" />
+                    <Run Text=" *" 
+                         Foreground="#FF4C4C" 
+                         FontWeight="Bold" 
+                         ToolTip="Pflichtfeld" />
+                </TextBlock>
+                <TextBox Grid.Row="0" 
+                         Grid.Column="1" 
+                         x:Name="ZabbixUrlTextBox" 
+                         Height="30" 
+                         Padding="6" 
+                         Margin="0,0,0,8" 
+                         HorizontalAlignment="Stretch" 
+                         VerticalAlignment="Center" />
 
-        <CheckBox x:Name="IgnoreCertificateErrorsCheckBox"
-            Grid.Row="4"
-            Content="SSL-Zertifikatsfehler ignorieren"
-            Margin="0,12,0,0" />
+                <!-- Dashboard URL -->
+                <TextBlock 
+                    Grid.Row="1" 
+                    Grid.Column="0" 
+                    Text="Dashboard URL" 
+                    Foreground="{DynamicResource SecondaryTextBrush}" 
+                    Margin="0,6,0,2" 
+                    VerticalAlignment="Center" />
+                <TextBox 
+                    Grid.Row="1" 
+                    Grid.Column="1" 
+                    x:Name="ZabbixDashboardUrlTextBox" 
+                    Height="30" 
+                    Padding="6" 
+                    Margin="0,0,0,8"
+                    HorizontalAlignment="Stretch" 
+                    VerticalAlignment="Center" />
 
-        <TextBlock Grid.Row="5"
-            Text="Abfrageintervall in Sekunden"
-            Margin="0,14,0,0" />
+                <!-- API Token -->
+                <TextBlock 
+                    Grid.Row="2" 
+                    Grid.Column="0" 
+                    Foreground="{DynamicResource SecondaryTextBrush}"
+                    Margin="0,6,0,2" 
+                    VerticalAlignment="Center">
+                    <Run Text="API Token" />
+                    <Run Text=" *" 
+                         Foreground="#FF4C4C" 
+                         FontWeight="Bold" 
+                         ToolTip="Pflichtfeld" />
+                </TextBlock>
+                <PasswordBox 
+                    Grid.Row="2" 
+                    Grid.Column="1"
+                    x:Name="ApiTokenTextBox"
+                    Height="30" Padding="6" 
+                    Margin="0,0,0,8"
+                    HorizontalAlignment="Stretch" 
+                    VerticalAlignment="Center" />
 
-        <TextBox x:Name="PollIntervalSecondsTextBox"
-            Grid.Row="6"
-            Margin="0,8,0,0"
-            Height="28"
-            Text="60" />
+                <!-- Optionen -->
+                <TextBlock 
+                    Grid.Row="3" 
+                    Grid.Column="0" 
+                    Text="Optionen" 
+                    Foreground="{DynamicResource SecondaryTextBrush}" 
+                    Margin="0,6,0,2" 
+                    VerticalAlignment="Top" />
+                <StackPanel 
+                    Grid.Row="3" 
+                    Grid.Column="1" 
+                    Orientation="Vertical" 
+                    Margin="0,0,0,8" 
+                    VerticalAlignment="Top">
+                    <CheckBox x:Name="IgnoreCertificateErrorsCheckBox" Content="SSL nutzen" Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,2,0,2" />
+                    <CheckBox x:Name="DarkModeCheckBox" Content="Dark Mode aktivieren" Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,2,0,2" />
+                </StackPanel>
 
-        <StackPanel Grid.Row="7"
-            Orientation="Horizontal"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Bottom"
-            Margin="0,20,0,0">
+                <!-- Abfrageintervall -->
+                <TextBlock 
+                    Grid.Row="4" 
+                    Grid.Column="0" 
+                    Foreground="{DynamicResource SecondaryTextBrush}" 
+                    Margin="0,6,0,2" 
+                    VerticalAlignment="Center">
+                    <Run Text="Abfrageintervall (s)" />
+                    <Run Text=" *" Foreground="#FF4C4C" FontWeight="Bold" ToolTip="Pflichtfeld" />
+                </TextBlock>
+                <TextBox 
+                    Grid.Row="4" 
+                    Grid.Column="1"
+                    x:Name="PollIntervalSecondsTextBox" 
+                    Width="160" Height="30" Padding="6"
+                    Text="60" HorizontalAlignment="Left" 
+                    VerticalAlignment="Center" />
 
-            <Button Content="Verbindung testen"
-                Width="130"
-                Margin="0,0,8,0"
-                Click="TestConnection_Click" />
-            <Button Content="Abbrechen"
-                Width="90"
-                Margin="0,0,8,0"
-                Click="Cancel_Click" />
-            <Button Content="Speichern"
-                Width="90"
-                Click="Save_Click" />
-        </StackPanel>
+                <!-- Buttons -->
+                <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                    <Button 
+                        Content="Testen" 
+                        Width="80" Margin="0,0,8,0"
+                        Click="TestConnection_Click" />
+                    <Button 
+                        Content="Abbrechen" 
+                        Width="90" Margin="0,0,8,0"
+                        Click="Cancel_Click" />
+                    <Button 
+                        Content="Speichern" 
+                        Width="90" 
+                        Click="Save_Click" />
+                </StackPanel>
+            </Grid>
+        </Grid>
     </Grid>
 </Window>

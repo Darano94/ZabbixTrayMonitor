@@ -8,6 +8,6 @@ namespace ZabbixTrayMonitor.Models
         public string Name { get; set; } = "";
         public int Severity { get; set; }
         public DateTime Time { get; set; }
-        public bool Acknowledged { get; set; }
+        public bool Acknowledged { get; set; } // ToDO
     }
 }

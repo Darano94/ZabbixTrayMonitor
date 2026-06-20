@@ -1,14 +1,31 @@
-﻿using System.Configuration;
-using System.Data;
-using System.Windows;
+﻿using System.Windows;
+using ZabbixTrayMonitor.Services;
 
 namespace ZabbixTrayMonitor
 {
     /// <summary>
-    /// Interaction logic for App.xaml
+    /// Interaktionslogik für App.xaml
     /// </summary>
     public partial class App : Application
     {
-    }
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
 
+            // Theme aus gespeicherter Konfiguration vor Fensterstart anwenden
+            try
+            {
+                var configService = new ConfigService();
+                if (configService.ConfigExists())
+                {
+                    var cfg = configService.Load();
+                    ThemeService.ApplyTheme(cfg.UseDarkMode);
+                }
+            }
+            catch
+            {
+                // Theme-Anwendungsfehler ignorieren
+            }
+        }
+    }
 }

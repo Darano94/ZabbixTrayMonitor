@@ -14,14 +14,29 @@ namespace ZabbixTrayMonitor.Services
     {
         private const string ZabbixApiEndpoint = "/api_jsonrpc.php";
 
+        // Wiederverwendete HttpClient-Instanzen: eine standard, eine mit zertbypass
+        private static readonly HttpClient _defaultClient = new HttpClient();
+        private static readonly HttpClient _insecureClient;
+
+        static ZabbixClient()
+        {
+            var handler = new HttpClientHandler();
+            handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+            _insecureClient = new HttpClient(handler);
+        }
+
+        private static HttpClient GetClient(bool ignoreCertificateErrors)
+        {
+            return ignoreCertificateErrors ? _insecureClient : _defaultClient;
+        }
+
         public async Task<List<ZabbixProblem>> GetProblemsAsync(string zabbixUrl, string apiToken, bool ignoreCertificateErrors)
         {
             var apiUrl = zabbixUrl.TrimEnd('/') + ZabbixApiEndpoint;
 
-            using var httpClient = CreateHttpClient(ignoreCertificateErrors);
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
+            var client = GetClient(ignoreCertificateErrors);
 
-            var request = new
+            var requestObj = new
             {
                 jsonrpc = "2.0",
                 method = "problem.get",
@@ -34,9 +49,18 @@ namespace ZabbixTrayMonitor.Services
                 id = 2
             };
 
-            var json = JsonSerializer.Serialize(request);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var response = await httpClient.PostAsync(apiUrl, content);
+            var json = JsonSerializer.Serialize(requestObj);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, apiUrl)
+            {
+                Content = content
+            };
+
+            // Authorization pro Request setzen (nicht in DefaultRequestHeaders), damit unterschiedliche Tokens/Clients sich nicht gegenseitig stören
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
+
+            var response = await client.SendAsync(request);
             response.EnsureSuccessStatusCode();
             var responseJson = await response.Content.ReadAsStringAsync();
             using var document = JsonDocument.Parse(responseJson);
@@ -78,9 +102,9 @@ namespace ZabbixTrayMonitor.Services
         {
             var apiUrl = zabbixUrl.TrimEnd('/') + ZabbixApiEndpoint;
 
-            using var httpClient = CreateHttpClient(ignoreCertificateErrors);
+            var client = GetClient(ignoreCertificateErrors);
 
-            var request = new
+            var requestObj = new
             {
                 jsonrpc = "2.0",
                 method = "apiinfo.version",
@@ -88,10 +112,15 @@ namespace ZabbixTrayMonitor.Services
                 id = 1
             };
 
-            var json = JsonSerializer.Serialize(request);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var json = JsonSerializer.Serialize(requestObj);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await httpClient.PostAsync(apiUrl, content);
+            using var request = new HttpRequestMessage(HttpMethod.Post, apiUrl)
+            {
+                Content = content
+            };
+
+            var response = await client.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
             var responseJson = await response.Content.ReadAsStringAsync();
@@ -101,20 +130,7 @@ namespace ZabbixTrayMonitor.Services
             if (document.RootElement.TryGetProperty("result", out var result))
                 return result.GetString() ?? "";
 
-            throw new Exception("Keine gültige Zabbix-Antwort erhalten");
-        }
-
-        private static HttpClient CreateHttpClient(bool ignoreCertificateErrors)
-        {
-            var handler = new HttpClientHandler();
-
-            if (ignoreCertificateErrors)
-            {
-                handler.ServerCertificateCustomValidationCallback =
-                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
-            }
-
-            return new HttpClient(handler);
+            throw new Exception("Keine gültige Antwort vom Server erhalten");
         }
     }
 }
