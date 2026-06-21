@@ -22,7 +22,7 @@ namespace ZabbixTrayMonitor.Views
 
                 var assembly = Assembly.GetEntryAssembly(); // Assembly ist die gebaute exe
                 var version = assembly?.GetName().Version?.ToString() ?? "unbekannt";
-                var location = assembly?.Location ?? string.Empty;
+                var location = Environment.ProcessPath ?? AppContext.BaseDirectory;
                 var fileVersion = GetFileVersion(location, version);
                 var configPath = configService.GetConfigPath();
 
