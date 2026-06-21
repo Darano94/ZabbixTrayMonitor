@@ -7,6 +7,10 @@ Je nach Zustand wird sichtbar, ob es Fehler oder Warnungen gibt.
 
 Über das Kontextmenü können weitere Informationen abgerufen und die Zabbix-Weboberfläche geöffnet werden.
 
+## Download
+
+[![Download](https://img.shields.io/badge/Download-Releases-blue)](https://github.com/Darano94/ZabbixTrayMonitor/releases)
+
 ## Screenshots
 
 ### Tray Tooltip ohne Probleme
