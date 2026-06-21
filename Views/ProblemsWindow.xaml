@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ZabbixTrayMonitor.Views"
         mc:Ignorable="d"
         Title="Aktuelle Zabbix Probleme"
         Height="460"
@@ -15,156 +14,173 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
-        Closing="Window_Closing"
-        >
+        Closing="Window_Closing">
+
+    <Window.Resources>
+        <Style x:Key="ProblemItemBorderStyle" TargetType="Border">
+            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <TranslateTransform X="0" Y="0" />
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="0"
+                                      ShadowDepth="0"
+                                      Opacity="0" />
+                </Setter.Value>
+            </Setter>
+
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+                    <Setter Property="RenderTransform">
+                        <Setter.Value>
+                            <TranslateTransform X="0" Y="-2" />
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="Effect">
+                        <Setter.Value>
+                            <DropShadowEffect BlurRadius="8"
+                                              ShadowDepth="2"
+                                              Color="{DynamicResource HoverShadowColor}"
+                                              Opacity="0.12" />
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="0">
-        <Border CornerRadius="8" Background="{DynamicResource WindowBackgroundBrush}" Padding="12" Margin="8" Effect="{x:Null}">
-            <!-- Outer dark panel -->
+        <Border CornerRadius="8"
+                Background="{DynamicResource WindowBackgroundBrush}"
+                Padding="12"
+                Margin="8"
+                Effect="{x:Null}">
+
+            <!-- Outer panel -->
             <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Margin="0,0,0,10">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+                <!-- Header -->
+                <Grid Grid.Row="0"
+                      Margin="0,0,0,10">
 
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
 
-                <StackPanel Orientation="Horizontal" Grid.Column="0">
-                    <TextBlock x:Name="LoadingTextBlock"
+                    <StackPanel Grid.Column="0"
+                                Orientation="Horizontal">
+
+                        <TextBlock x:Name="LoadingTextBlock"
+                                   Visibility="Collapsed"
+                                   Foreground="{DynamicResource LoadingBrush}"
+                                   FontStyle="Italic"
+                                   Margin="0,0,8,0"
+                                   VerticalAlignment="Center"
+                                   Text="Aktualisiere..." />
+
+                        <TextBlock x:Name="LastUpdatedTextBlock"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   FontSize="11"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal">
+
+                        <Button Content="⟳"
+                                Width="26"
+                                Height="24"
+                                MinWidth="0"
+                                Margin="0,0,6,0"
+                                FontSize="14"
+                                FontWeight="Bold"
+                                Padding="0"
+                                ToolTip="Aktualisieren"
+                                Click="Refresh_Click" />
+
+                        <Button Content="⌂"
+                                Width="26"
+                                Height="24"
+                                MinWidth="0"
+                                FontSize="14"
+                                FontWeight="Bold"
+                                Padding="0"
+                                ToolTip="Dashboard öffnen"
+                                Click="Dashboard_Click" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Content -->
+                <Grid Grid.Row="1">
+                    <TextBlock x:Name="EmptyTextBlock"
                                Visibility="Collapsed"
-                               Foreground="{DynamicResource LoadingBrush}"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
                                FontStyle="Italic"
-                               Margin="0,0,8,0"
+                               HorizontalAlignment="Center"
                                VerticalAlignment="Center"
-                               Text="Aktualisiere..." />
+                               Text="Keine Probleme gefunden" />
 
-                    <TextBlock x:Name="LastUpdatedTextBlock"
-                       Foreground="{DynamicResource SecondaryTextBrush}"
-                       FontSize="11"
-                       VerticalAlignment="Center" />
-                </StackPanel>
+                    <ScrollViewer x:Name="ProblemsScrollViewer"
+                                  VerticalScrollBarVisibility="Auto">
 
-                <StackPanel Grid.Column="1"
-                    Orientation="Horizontal">
+                        <ItemsControl x:Name="ProblemsItemsControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource ProblemItemBorderStyle}"
+                                            MouseLeftButtonUp="ProblemItem_Click">
 
-                    <Button Content="⟳"
-                        Width="26"
-                        Height="24"
-                        MinWidth="0"
-                        Margin="0,0,6,0"
-                        FontSize="14"
-                        FontWeight="Bold"
-                        Padding="0"
-                        ToolTip="Aktualisieren"
-                        Click="Refresh_Click" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="8" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
 
-                    <Button Content="⌂"
-                        Width="26"
-                        Height="24"
-                        MinWidth="0"
-                        FontSize="14"
-                        FontWeight="Bold"
-                        Padding="0"
-                        ToolTip="Dashboard öffnen"
-                        Click="Dashboard_Click" />
-                </StackPanel>
+                                            <Border Grid.Column="0"
+                                                    Background="{Binding StatusColor}" />
+
+                                            <StackPanel Grid.Column="1"
+                                                        Margin="8,4,4,8">
+
+                                                <TextBlock Text="{Binding Host}"
+                                                           Foreground="{DynamicResource SecondaryTextBrush}"
+                                                           FontSize="11" />
+
+                                                <TextBlock Text="{Binding Status}"
+                                                           Foreground="{DynamicResource PrimaryTextBrush}"
+                                                           FontWeight="Bold"
+                                                           FontSize="13" />
+
+                                                <TextBlock Text="{Binding Name}"
+                                                           TextWrapping="Wrap"
+                                                           Foreground="{DynamicResource PrimaryTextBrush}"
+                                                           FontSize="12" />
+
+                                                <TextBlock Text="{Binding Time}"
+                                                           Foreground="{DynamicResource SecondaryTextBrush}"
+                                                           FontSize="10"
+                                                           Margin="0,3,0,0" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
             </Grid>
-        </Grid>
-
-            <TextBlock x:Name="EmptyTextBlock"
-                       Grid.Row="1"
-                       Visibility="Collapsed"
-                       Foreground="{DynamicResource SecondaryTextBrush}"
-                       FontStyle="Italic"
-                       Margin="8,8,8,0"
-                       Text="Keine Probleme gefunden" />
-
-            <ScrollViewer Grid.Row="1"
-              VerticalScrollBarVisibility="Auto">
-            <ItemsControl x:Name="ProblemsItemsControl">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border Margin="0,0,0,6"
-                        BorderBrush="{DynamicResource DividerBrush}"
-                        BorderThickness="0,0,0,1"
-                        Background="Transparent"
-                        Cursor="Hand"
-                        MouseLeftButtonUp="ProblemItem_Click">
-                            <Border.Style>
-                                <Style TargetType="Border">
-                                    <Setter Property="Background" Value="Transparent" />
-                                    <Setter Property="RenderTransform">
-                                        <Setter.Value>
-                                            <TranslateTransform X="0" Y="0" />
-                                        </Setter.Value>
-                                    </Setter>
-                                    <Setter Property="Effect">
-                                        <Setter.Value>
-                                            <DropShadowEffect BlurRadius="0" ShadowDepth="0" Opacity="0" />
-                                        </Setter.Value>
-                                    </Setter>
-                                    <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#1F1F1F" />
-                                            <Setter Property="RenderTransform">
-                                                <Setter.Value>
-                                                    <TranslateTransform X="0" Y="-2" />
-                                                </Setter.Value>
-                                            </Setter>
-                                            <Setter Property="Effect">
-                                                <Setter.Value>
-                                                    <DropShadowEffect BlurRadius="8" ShadowDepth="2" Color="#000000" Opacity="0.12" />
-                                                </Setter.Value>
-                                            </Setter>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="8"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <Border Background="{Binding StatusColor}"
-                                Grid.Column="0"/>
-
-                                <StackPanel Grid.Column="1"
-                                    Margin="8,4,4,8">
-                                    <TextBlock Text="{Binding Host}"
-                                       Foreground="{DynamicResource SecondaryTextBrush}"
-                                       FontSize="11"/>
-
-                                    <TextBlock Text="{Binding Status}"
-                                       Foreground="{DynamicResource PrimaryTextBrush}"
-                                       FontWeight="Bold"
-                                       FontSize="13"/>
-
-                                    <TextBlock Text="{Binding Name}"
-                                       TextWrapping="Wrap"
-                                       Foreground="{DynamicResource PrimaryTextBrush}"
-                                       FontSize="12"/>
-
-                                    <TextBlock Text="{Binding Time}"
-                                       Foreground="{DynamicResource SecondaryTextBrush}"
-                                       FontSize="10"
-                                       Margin="0,3,0,0"/>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
-        </Grid>
         </Border>
     </Grid>
 </Window>

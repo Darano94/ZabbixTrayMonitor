@@ -5,158 +5,495 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ZabbixTrayMonitor"
         mc:Ignorable="d"
-        Title="Zabbix Einstellungen"
+        Title="Zabbix Einstellungen - ZabbixTrayMonitor"
         SizeToContent="Height"
         Width="440"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        Background="{DynamicResource WindowBackgroundBrush}">
-    <Grid Margin="6" MinHeight="260">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+        WindowStyle="None"
+        AllowsTransparency="True"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="Transparent">
 
-        <TextBlock Text="Einstellungen"
-                   FontSize="18"
-                   FontWeight="Bold"
-                   Foreground="{DynamicResource PrimaryTextBrush}" />
+    <Window.Resources>
+        <Style x:Key="SectionSeparatorStyle" TargetType="Border">
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Background" Value="{DynamicResource DividerBrush}" />
+            <Setter Property="Opacity" Value="0.9" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
 
-        <Grid Grid.Row="1" Margin="0,6,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="160" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+        <Style x:Key="SectionHeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="Opacity" Value="0.95" />
+        </Style>
+    </Window.Resources>
 
-            <Grid Grid.Column="0" Grid.ColumnSpan="2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="130" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+    <Grid Margin="6">
+        <Border CornerRadius="8"
+                Background="{DynamicResource WindowBackgroundBrush}"
+                Padding="12,16,12,12">
+
+            <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" /> 
-                    <RowDefinition Height="Auto" /> 
-                    <RowDefinition Height="Auto" /> 
                     <RowDefinition Height="Auto" />
-                <RowDefinition Height="4" /> 
-                    <RowDefinition Height="Auto" /> 
                 </Grid.RowDefinitions>
 
-                <!-- Zabbix URL -->
-                <TextBlock 
-                    Grid.Row="0" 
-                    Grid.Column="0" 
-                    Foreground="{DynamicResource SecondaryTextBrush}" 
-                    Margin="0,6,0,2" 
-                    VerticalAlignment="Center">
-                    <Run Text="Zabbix URL" />
-                    <Run Text=" *" 
-                         Foreground="#FF4C4C" 
-                         FontWeight="Bold" 
-                         ToolTip="Pflichtfeld" />
-                </TextBlock>
-                <TextBox Grid.Row="0" 
-                         Grid.Column="1" 
-                         x:Name="ZabbixUrlTextBox" 
-                         Height="30" 
-                         Padding="6" 
-                         Margin="0,0,0,8" 
-                         HorizontalAlignment="Stretch" 
-                         VerticalAlignment="Center" />
+                <!-- Draggable header area -->
+                <Border Grid.Row="0"
+                        Background="Transparent"
+                        MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                        Margin="0,0,0,8">
 
-                <!-- Dashboard URL -->
-                <TextBlock 
-                    Grid.Row="1" 
-                    Grid.Column="0" 
-                    Text="Dashboard URL" 
-                    Foreground="{DynamicResource SecondaryTextBrush}" 
-                    Margin="0,6,0,2" 
-                    VerticalAlignment="Center" />
-                <TextBox 
-                    Grid.Row="1" 
-                    Grid.Column="1" 
-                    x:Name="ZabbixDashboardUrlTextBox" 
-                    Height="30" 
-                    Padding="6" 
-                    Margin="0,0,0,8"
-                    HorizontalAlignment="Stretch" 
-                    VerticalAlignment="Center" />
+                    <TextBlock x:Name="HeaderTitle"
+                               Text="Zabbix Einstellungen"
+                               Foreground="{DynamicResource PrimaryTextBrush}"
+                               FontWeight="Bold"
+                               Margin="6,0,0,8"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                </Border>
 
-                <!-- API Token -->
-                <TextBlock 
-                    Grid.Row="2" 
-                    Grid.Column="0" 
-                    Foreground="{DynamicResource SecondaryTextBrush}"
-                    Margin="0,6,0,2" 
-                    VerticalAlignment="Center">
-                    <Run Text="API Token" />
-                    <Run Text=" *" 
-                         Foreground="#FF4C4C" 
-                         FontWeight="Bold" 
-                         ToolTip="Pflichtfeld" />
-                </TextBlock>
-                <PasswordBox 
-                    Grid.Row="2" 
-                    Grid.Column="1"
-                    x:Name="ApiTokenTextBox"
-                    Height="30" Padding="6" 
-                    Margin="0,0,0,8"
-                    HorizontalAlignment="Stretch" 
-                    VerticalAlignment="Center" />
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="130" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-                <!-- Optionen -->
-                <TextBlock 
-                    Grid.Row="3" 
-                    Grid.Column="0" 
-                    Text="Optionen" 
-                    Foreground="{DynamicResource SecondaryTextBrush}" 
-                    Margin="0,6,0,2" 
-                    VerticalAlignment="Top" />
-                <StackPanel 
-                    Grid.Row="3" 
-                    Grid.Column="1" 
-                    Orientation="Vertical" 
-                    Margin="0,0,0,8" 
-                    VerticalAlignment="Top">
-                    <CheckBox x:Name="IgnoreCertificateErrorsCheckBox" Content="SSL nutzen" Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,2,0,2" />
-                    <CheckBox x:Name="DarkModeCheckBox" Content="Dark Mode aktivieren" Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,2,0,2" />
-                </StackPanel>
+                    <Grid.RowDefinitions>
+                        <!-- Allgemein -->
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
 
-                <!-- Abfrageintervall -->
-                <TextBlock 
-                    Grid.Row="4" 
-                    Grid.Column="0" 
-                    Foreground="{DynamicResource SecondaryTextBrush}" 
-                    Margin="0,6,0,2" 
-                    VerticalAlignment="Center">
-                    <Run Text="Abfrageintervall (s)" />
-                    <Run Text=" *" Foreground="#FF4C4C" FontWeight="Bold" ToolTip="Pflichtfeld" />
-                </TextBlock>
-                <TextBox 
-                    Grid.Row="4" 
-                    Grid.Column="1"
-                    x:Name="PollIntervalSecondsTextBox" 
-                    Width="160" Height="30" Padding="6"
-                    Text="60" HorizontalAlignment="Left" 
-                    VerticalAlignment="Center" />
+                        <!-- Schwellenwerte -->
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
 
-                <!-- Buttons -->
-                <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-                    <Button 
-                        Content="Testen" 
-                        Width="80" Margin="0,0,8,0"
-                        Click="TestConnection_Click" />
-                    <Button 
-                        Content="Abbrechen" 
-                        Width="90" Margin="0,0,8,0"
-                        Click="Cancel_Click" />
-                    <Button 
-                        Content="Speichern" 
-                        Width="90" 
-                        Click="Save_Click" />
-                </StackPanel>
+                        <!-- Farbwerte -->
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+
+                        <!-- Windows Credential Manager -->
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+
+                        <!-- Buttons -->
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Allgemein Header -->
+                    <Grid Grid.Row="0"
+                          Grid.Column="0"
+                          Grid.ColumnSpan="2"
+                          Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Allgemein"
+                                   Style="{StaticResource SectionHeaderTextStyle}" />
+
+                        <Border Grid.Column="1"
+                                Style="{StaticResource SectionSeparatorStyle}" />
+                    </Grid>
+
+                    <!-- App-Name -->
+                    <TextBlock Grid.Row="1"
+                               Grid.Column="0"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,8,6"
+                               VerticalAlignment="Center">
+                        <Run Text="App-Name" />
+                        <Run Text=" *"
+                             Foreground="#FF4C4C"
+                             FontWeight="Bold"
+                             ToolTip="Pflichtfeld" />
+                    </TextBlock>
+
+                    <TextBox x:Name="AppNameTextBoxHeader"
+                             Grid.Row="1"
+                             Grid.Column="1"
+                             Height="30"
+                             Padding="6"
+                             Margin="0,0,0,6"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Center" />
+
+                    <!-- Zabbix URL -->
+                    <TextBlock Grid.Row="2"
+                               Grid.Column="0"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,8,6"
+                               VerticalAlignment="Center">
+                        <Run Text="Zabbix URL" />
+                        <Run Text=" *"
+                             Foreground="#FF4C4C"
+                             FontWeight="Bold"
+                             ToolTip="Pflichtfeld" />
+                    </TextBlock>
+
+                    <TextBox x:Name="ZabbixUrlTextBox"
+                             Grid.Row="2"
+                             Grid.Column="1"
+                             Height="30"
+                             Padding="6"
+                             Margin="0,0,0,6"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Center" />
+
+                    <!-- API-Pfad (JSON-RPC) -->
+                    <TextBlock Grid.Row="3"
+                               Grid.Column="0"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,8,6"
+                               VerticalAlignment="Center">
+                        <Run Text="API-Pfad (JSON-RPC)" />
+                        <Run Text=" *"
+                             Foreground="#FF4C4C"
+                             FontWeight="Bold"
+                             ToolTip="Pflichtfeld" />
+                    </TextBlock>
+
+                    <TextBox x:Name="ZabbixApiEndpointTextBox"
+                             Grid.Row="3"
+                             Grid.Column="1"
+                             Height="30"
+                             Padding="6"
+                             Margin="0,0,0,6"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Center" />
+
+                    <!-- Dashboard URL -->
+                    <TextBlock Grid.Row="4"
+                               Grid.Column="0"
+                               Text="Dashboard URL"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,8,6"
+                               VerticalAlignment="Center" />
+
+                    <TextBox x:Name="ZabbixDashboardUrlTextBox"
+                             Grid.Row="4"
+                             Grid.Column="1"
+                             Height="30"
+                             Padding="6"
+                             Margin="0,0,0,6"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Center" />
+
+                    <!-- API Token -->
+                    <TextBlock Grid.Row="5"
+                               Grid.Column="0"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,8,6"
+                               VerticalAlignment="Center">
+                        <Run Text="API Token" />
+                        <Run Text=" *"
+                             Foreground="#FF4C4C"
+                             FontWeight="Bold"
+                             ToolTip="Pflichtfeld" />
+                    </TextBlock>
+
+                    <PasswordBox x:Name="ApiTokenTextBox"
+                                 Grid.Row="5"
+                                 Grid.Column="1"
+                                 Height="30"
+                                 Padding="6"
+                                 Margin="0,0,0,6"
+                                 HorizontalAlignment="Stretch"
+                                 VerticalAlignment="Center" />
+
+                    <!-- Optionen -->
+                    <TextBlock Grid.Row="6"
+                               Grid.Column="0"
+                               Text="Optionen"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,8,6"
+                               VerticalAlignment="Top" />
+
+                    <StackPanel Grid.Row="6"
+                                Grid.Column="1"
+                                Orientation="Vertical"
+                                Margin="0,0,0,6"
+                                VerticalAlignment="Top">
+
+                        <CheckBox x:Name="IgnoreCertificateErrorsCheckBox"
+                                  Content="SSL-Zertifikatsfehler ignorieren"
+                                  Foreground="{DynamicResource PrimaryTextBrush}"
+                                  Margin="0,0,0,2" />
+
+                        <CheckBox x:Name="DarkModeCheckBox"
+                                  Content="Dark Mode aktivieren"
+                                  Foreground="{DynamicResource PrimaryTextBrush}"
+                                  Margin="0,2,0,0" />
+                    </StackPanel>
+
+                    <!-- Abfrageintervall -->
+                    <TextBlock Grid.Row="7"
+                               Grid.Column="0"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Center">
+                        <Run Text="Abfrageintervall (s)" />
+                        <Run Text=" *"
+                             Foreground="#FF4C4C"
+                             FontWeight="Bold"
+                             ToolTip="Pflichtfeld" />
+                    </TextBlock>
+
+                    <TextBox x:Name="PollIntervalSecondsTextBox"
+                             Grid.Row="7"
+                             Grid.Column="1"
+                             Height="30"
+                             Padding="6"
+                             Text="60"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Center" />
+
+                    <!-- Schwellenwerte Header -->
+                    <Grid Grid.Row="8"
+                          Grid.Column="0"
+                          Grid.ColumnSpan="2"
+                          Margin="0,12,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Schwellenwerte"
+                                   Style="{StaticResource SectionHeaderTextStyle}" />
+
+                        <Border Grid.Column="1"
+                                Style="{StaticResource SectionSeparatorStyle}" />
+                    </Grid>
+
+                    <!-- Warn-Schwelle -->
+                    <TextBlock Grid.Row="9"
+                               Grid.Column="0"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,8,6"
+                               VerticalAlignment="Center">
+                        <Run Text="Warn-Schwelle" />
+                        <Run Text=" *"
+                             Foreground="#FF4C4C"
+                             FontWeight="Bold"
+                             ToolTip="Pflichtfeld" />
+                    </TextBlock>
+
+                    <TextBox x:Name="WarningSeverityTextBox"
+                             Grid.Row="9"
+                             Grid.Column="1"
+                             Height="30"
+                             Padding="6"
+                             Margin="0,0,0,6"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Center" />
+
+                    <!-- Error-Schwelle -->
+                    <TextBlock Grid.Row="10"
+                               Grid.Column="0"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Center">
+                        <Run Text="Error-Schwelle" />
+                        <Run Text=" *"
+                             Foreground="#FF4C4C"
+                             FontWeight="Bold"
+                             ToolTip="Pflichtfeld" />
+                    </TextBlock>
+
+                    <TextBox x:Name="ErrorSeverityTextBox"
+                             Grid.Row="10"
+                             Grid.Column="1"
+                             Height="30"
+                             Padding="6"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Center" />
+
+                    <!-- Farbwerte Header -->
+                    <Grid Grid.Row="11"
+                          Grid.Column="0"
+                          Grid.ColumnSpan="2"
+                          Margin="0,12,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Farbwerte"
+                                   Style="{StaticResource SectionHeaderTextStyle}" />
+
+                        <Border Grid.Column="1"
+                                Style="{StaticResource SectionSeparatorStyle}" />
+                    </Grid>
+
+                    <!-- Farbe Fehler -->
+                    <TextBlock Grid.Row="12"
+                               Grid.Column="0"
+                               Text="Farbe Fehler (Hex)"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,8,6"
+                               VerticalAlignment="Center" />
+
+                    <TextBox x:Name="StatusColorErrorTextBox"
+                             Grid.Row="12"
+                             Grid.Column="1"
+                             Height="30"
+                             Padding="6"
+                             Margin="0,0,0,6"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Center" />
+
+                    <!-- Farbe Warnung -->
+                    <TextBlock Grid.Row="13"
+                               Grid.Column="0"
+                               Text="Farbe Warnung (Hex)"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,8,6"
+                               VerticalAlignment="Center" />
+
+                    <TextBox x:Name="StatusColorWarningTextBox"
+                             Grid.Row="13"
+                             Grid.Column="1"
+                             Height="30"
+                             Padding="6"
+                             Margin="0,0,0,6"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Center" />
+
+                    <!-- Farbe Info -->
+                    <TextBlock Grid.Row="14"
+                               Grid.Column="0"
+                               Text="Farbe Info (Hex)"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Center" />
+
+                    <TextBox x:Name="StatusColorInfoTextBox"
+                             Grid.Row="14"
+                             Grid.Column="1"
+                             Height="30"
+                             Padding="6"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Center" />
+
+                    <!-- Windows Credential Manager Header -->
+                    <Grid Grid.Row="15"
+                          Grid.Column="0"
+                          Grid.ColumnSpan="2"
+                          Margin="0,12,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Windows Credential Manager"
+                                   Style="{StaticResource SectionHeaderTextStyle}" />
+
+                        <Border Grid.Column="1"
+                                Style="{StaticResource SectionSeparatorStyle}" />
+                    </Grid>
+
+                    <!-- Credential Target -->
+                    <TextBlock Grid.Row="16"
+                               Grid.Column="0"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,8,6"
+                               VerticalAlignment="Center">
+                        <Run Text="Credential Target" />
+                        <Run Text=" *"
+                             Foreground="#FF4C4C"
+                             FontWeight="Bold"
+                             ToolTip="Pflichtfeld" />
+                    </TextBlock>
+
+                    <Grid Grid.Row="16"
+                          Grid.Column="1"
+                          Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="120" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox x:Name="CredentialTargetPrefixTextBox"
+                                 Grid.Column="0"
+                                 Height="30"
+                                 Padding="6"
+                                 IsReadOnly="True"
+                                 Margin="0,0,8,0"
+                                 HorizontalAlignment="Stretch"
+                                 VerticalAlignment="Center" />
+
+                        <TextBox x:Name="CredentialTargetSuffixTextBox"
+                                 Grid.Column="1"
+                                 Height="30"
+                                 Padding="6"
+                                 HorizontalAlignment="Stretch"
+                                 VerticalAlignment="Center" />
+                    </Grid>
+
+                    <!-- Credential Username -->
+                    <TextBlock Grid.Row="17"
+                               Grid.Column="0"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Center">
+                        <Run Text="Credential Username" />
+                        <Run Text=" *"
+                             Foreground="#FF4C4C"
+                             FontWeight="Bold"
+                             ToolTip="Pflichtfeld" />
+                    </TextBlock>
+
+                    <TextBox x:Name="CredentialUsernameTextBox"
+                             Grid.Row="17"
+                             Grid.Column="1"
+                             Height="30"
+                             Padding="6"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Center" />
+
+                    <!-- Buttons -->
+                    <StackPanel Grid.Row="18"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="2"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Margin="0,14,0,0">
+
+                        <Button Content="Testen"
+                                Width="80"
+                                Click="TestConnection_Click" />
+
+                        <Button Content="Abbrechen"
+                                Width="90"
+                                Margin="8,0,0,0"
+                                Click="Cancel_Click" />
+
+                        <Button Content="Speichern"
+                                Width="90"
+                                Margin="8,0,0,0"
+                                Click="Save_Click" />
+                    </StackPanel>
+                </Grid>
             </Grid>
-        </Grid>
+        </Border>
     </Grid>
 </Window>

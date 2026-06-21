@@ -11,17 +11,25 @@ namespace ZabbixTrayMonitor.Services
     {
         private readonly string _appFolder;
         private readonly string _configPath;
-        private readonly string _configFilename = "config.json";
-        private readonly string _configFoldername = "ZabbixTrayMonitor";
+        private const string ConfigFilename = "config.json";
+
+        // konstanter AppData-Ordnername (nicht abhängig von konfigurierbarem AppName) .. Todo
+        private const string AppDataBaseName = "ZabbixTrayMonitor";
+
+        // formatiert JSON mit Zeilenumbrüchen und Einrückungen sonst ist es ein langer oneliner
+        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+        {
+            WriteIndented = true
+        };
 
         public ConfigService()
         {
             _appFolder = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                _configFoldername
+                AppDataBaseName
             );
 
-            _configPath = Path.Combine(_appFolder, _configFilename);
+            _configPath = Path.Combine(_appFolder, ConfigFilename);
         }
 
         public bool ConfigExists()
@@ -34,18 +42,24 @@ namespace ZabbixTrayMonitor.Services
             if (!ConfigExists())
                 return new ZabbixConfig();
 
-            var json = File.ReadAllText(_configPath);
-            return JsonSerializer.Deserialize<ZabbixConfig>(json) ?? new ZabbixConfig();
+            try
+            {
+                var json = File.ReadAllText(_configPath);
+
+                // wandelt JSON in ZabbixConfig-Objekt um, falls ungültig wird ein neues Objekt zurückgegeben
+                return JsonSerializer.Deserialize<ZabbixConfig>(json, _jsonOptions) ?? new ZabbixConfig();
+            }
+            catch
+            {
+                return new ZabbixConfig();
+            }
         }
 
         public void Save(ZabbixConfig config)
         {
             Directory.CreateDirectory(_appFolder);
 
-            var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
+            var json = JsonSerializer.Serialize(config, _jsonOptions);
 
             File.WriteAllText(_configPath, json);
         }

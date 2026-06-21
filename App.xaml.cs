@@ -12,7 +12,7 @@ namespace ZabbixTrayMonitor
         {
             base.OnStartup(e);
 
-            // Theme aus gespeicherter Konfiguration vor Fensterstart anwenden
+            // Theme aus gespeicherter Config anwenden
             try
             {
                 var configService = new ConfigService();
@@ -22,10 +22,7 @@ namespace ZabbixTrayMonitor
                     ThemeService.ApplyTheme(cfg.UseDarkMode);
                 }
             }
-            catch
-            {
-                // Theme-Anwendungsfehler ignorieren
-            }
+            catch { }
         }
     }
 }

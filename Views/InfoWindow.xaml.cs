@@ -1,4 +1,7 @@
+using System.Diagnostics;
+using System.Reflection;
 using System.Windows;
+using ZabbixTrayMonitor.Services;
 
 namespace ZabbixTrayMonitor.Views
 {
@@ -10,47 +13,74 @@ namespace ZabbixTrayMonitor.Views
 
             try
             {
-                var assembly = System.Reflection.Assembly.GetEntryAssembly();
+                var configService = new ConfigService();
+                var config = configService.Load();
+
+                var appName = string.IsNullOrWhiteSpace(config.AppName)
+                    ? "ZabbixTrayMonitor"
+                    : config.AppName;
+
+                var assembly = Assembly.GetEntryAssembly(); // Assembly ist die gebaute exe
                 var version = assembly?.GetName().Version?.ToString() ?? "unbekannt";
                 var location = assembly?.Location ?? string.Empty;
-                string fileVersion = "unbekannt";
-                try
-                {
-                    if (!string.IsNullOrWhiteSpace(location))
-                    {
-                        var info = System.Diagnostics.FileVersionInfo.GetVersionInfo(location);
-                        fileVersion = info.ProductVersion ?? info.FileVersion ?? version;
-                    }
-                }
-                catch { }
+                var fileVersion = GetFileVersion(location, version);
+                var configPath = configService.GetConfigPath();
 
-                AppNameText.Text = "Zabbix Tray Monitor";
+                Title = $"{appName} - Info";
+                HeaderTitleInfo.Text = $"{appName} - Info";
+
+                AppNameText.Text = appName;
                 VersionText.Text = $"Version: {fileVersion}";
-                PathText.Text = string.IsNullOrWhiteSpace(location) ? "" : $"Programm: {location}";
+                ProgramText.Text = string.IsNullOrWhiteSpace(location)
+                    ? string.Empty
+                    : $"Programm: {location}";
 
-                try
-                {
-                    var cfg = new ZabbixTrayMonitor.Services.ConfigService();
-                    var cfgPath = cfg.GetConfigPath();
-                    if (!string.IsNullOrWhiteSpace(cfgPath))
-                    {
-                        var cfgText = $"Configfile: {cfgPath}";
-                        // add on a new line
-                        PathText.Text += string.IsNullOrWhiteSpace(PathText.Text) ? cfgText : "\n" + cfgText;
-                    }
-                }
-                catch { }
+                ConfigText.Text = string.IsNullOrWhiteSpace(configPath)
+                    ? string.Empty
+                    : $"Config: {configPath}";
             }
             catch
             {
-                AppNameText.Text = "Zabbix Tray Monitor";
+                AppNameText.Text = "ZabbixTrayMonitor";
                 VersionText.Text = "Version: unbekannt";
+                ProgramText.Text = string.Empty;
+                ConfigText.Text = string.Empty;
+            }
+        }
+
+        private static string GetFileVersion(string location, string fallbackVersion)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(location))
+                    return fallbackVersion;
+
+                // versucht die Produktversion zu bekommen sonst die Dateiversion sonst die Assembly-Version
+                var info = FileVersionInfo.GetVersionInfo(location);
+
+                return info.ProductVersion
+                    ?? info.FileVersion
+                    ?? fallbackVersion;
+            }
+            catch
+            {
+                return fallbackVersion;
             }
         }
 
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private void Header_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            try
+            {
+                if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed)
+                    DragMove();
+            }
+            catch { }
         }
     }
 }

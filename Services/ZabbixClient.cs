@@ -12,7 +12,7 @@ namespace ZabbixTrayMonitor.Services
 {
     public class ZabbixClient
     {
-        private const string ZabbixApiEndpoint = "/api_jsonrpc.php";
+        private const string DefaultZabbixApiEndpoint = "/api_jsonrpc.php";
 
         // Wiederverwendete HttpClient-Instanzen: eine standard, eine mit zertbypass
         private static readonly HttpClient _defaultClient = new HttpClient();
@@ -21,7 +21,7 @@ namespace ZabbixTrayMonitor.Services
         static ZabbixClient()
         {
             var handler = new HttpClientHandler();
-            handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+            handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator; // Alle Zertifikatsfehler ignorieren zB bei self-signed
             _insecureClient = new HttpClient(handler);
         }
 
@@ -30,9 +30,19 @@ namespace ZabbixTrayMonitor.Services
             return ignoreCertificateErrors ? _insecureClient : _defaultClient;
         }
 
-        public async Task<List<ZabbixProblem>> GetProblemsAsync(string zabbixUrl, string apiToken, bool ignoreCertificateErrors)
+        private static string NormalizeZabbixApiEndpoint(string endpoint)
         {
-            var apiUrl = zabbixUrl.TrimEnd('/') + ZabbixApiEndpoint;
+            if (string.IsNullOrWhiteSpace(endpoint))
+                return DefaultZabbixApiEndpoint;
+
+            endpoint = endpoint.Trim();
+
+            return endpoint.StartsWith("/") ? endpoint : "/" + endpoint;
+        }
+
+        public async Task<List<ZabbixProblem>> GetProblemsAsync(string zabbixUrl, string zabbixApiEndpoint, string apiToken, bool ignoreCertificateErrors)
+        {
+            var apiUrl = zabbixUrl.TrimEnd('/') + NormalizeZabbixApiEndpoint(zabbixApiEndpoint);
 
             var client = GetClient(ignoreCertificateErrors);
 
@@ -46,23 +56,25 @@ namespace ZabbixTrayMonitor.Services
                     sortfield = new[] { "eventid" },
                     sortorder = "DESC"
                 },
-                id = 2
+                id = 420 // id kann beliebig sein - für Zuordnung von Request und Response, weil aber immer nur einen Request gleichzeitig ist die konkrete Zahl egal
             };
 
             var json = JsonSerializer.Serialize(requestObj);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
-
             using var request = new HttpRequestMessage(HttpMethod.Post, apiUrl)
             {
                 Content = content
             };
 
-            // Authorization pro Request setzen (nicht in DefaultRequestHeaders), damit unterschiedliche Tokens/Clients sich nicht gegenseitig stören
+            // Authorization pro Request setzen (nicht in DefaultRequestHeaders) damit unterschiedliche Tokens/Clients sich nicht gegenseitig stören
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
 
             var response = await client.SendAsync(request);
+
             response.EnsureSuccessStatusCode();
+
             var responseJson = await response.Content.ReadAsStringAsync();
+
             using var document = JsonDocument.Parse(responseJson);
 
             if (document.RootElement.TryGetProperty("error", out var error))
@@ -74,6 +86,9 @@ namespace ZabbixTrayMonitor.Services
 
                 throw new Exception($"{message}: {data}");
             }
+
+            // Fehler von API werden in "error" zurückgegeben, bei Erfolg in "result"
+            // result von API in Liste von ZabbixProblem-Objekten umwandeln
 
             var problems = new List<ZabbixProblem>();
 
@@ -89,7 +104,7 @@ namespace ZabbixTrayMonitor.Services
                 {
                     EventId = item.GetProperty("eventid").GetString() ?? "",
                     Name = item.GetProperty("name").GetString() ?? "",
-                    Severity = int.TryParse(item.GetProperty("severity").GetString(), out var severity) ? severity : 0,
+                    Severity = int.TryParse(item.GetProperty("severity").GetString(), out var severity) ? severity : 0, // severity ist eigentlich immer eine Zahl, aber sicherheitshalber TryParse
                     Time = DateTimeOffset.FromUnixTimeSeconds(clock).LocalDateTime,
                     Acknowledged = item.GetProperty("acknowledged").GetString() == "1"
                 });
@@ -98,9 +113,9 @@ namespace ZabbixTrayMonitor.Services
             return problems;
         }
 
-        public async Task<string> GetVersionAsync(string zabbixUrl, bool ignoreCertificateErrors)
+        public async Task<string> GetVersionAsync(string zabbixUrl, string zabbixApiEndpoint, bool ignoreCertificateErrors)
         {
-            var apiUrl = zabbixUrl.TrimEnd('/') + ZabbixApiEndpoint;
+            var apiUrl = zabbixUrl.TrimEnd('/') + NormalizeZabbixApiEndpoint(zabbixApiEndpoint);
 
             var client = GetClient(ignoreCertificateErrors);
 
@@ -121,11 +136,28 @@ namespace ZabbixTrayMonitor.Services
             };
 
             var response = await client.SendAsync(request);
+
             response.EnsureSuccessStatusCode();
 
             var responseJson = await response.Content.ReadAsStringAsync();
 
             using var document = JsonDocument.Parse(responseJson);
+
+            if (document.RootElement.TryGetProperty("error", out var error))
+            {
+                var message = error.TryGetProperty("message", out var messageElement)
+                    ? messageElement.GetString()
+                    : null;
+
+                var data = error.TryGetProperty("data", out var dataElement)
+                    ? dataElement.GetString()
+                    : null;
+
+                if (!string.IsNullOrWhiteSpace(data))
+                    throw new Exception($"Zabbix API Fehler: {message} - {data}");
+
+                throw new Exception($"Zabbix API Fehler: {message ?? "Unbekannter Fehler"}");
+            }
 
             if (document.RootElement.TryGetProperty("result", out var result))
                 return result.GetString() ?? "";
