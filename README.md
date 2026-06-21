@@ -103,6 +103,7 @@ Standardmaessig:
 Severity 0-1 -> ignoriert
 Severity 2-3 -> Warnung
 Severity 4-5 -> Fehler
+```
 
 ## API
 
