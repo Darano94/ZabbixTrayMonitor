@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
@@ -10,29 +10,38 @@ namespace ZabbixTrayMonitor.Views
 {
     public partial class ProblemsWindow : Window
     {
-        private bool _suppressLocationChanged = false; // Verhindert Endlosschleife im LocationChanged-Event
+        private bool _suppressLocationChanged = false; // Verhindert die Endlosschleife beim Setzen der Position im LocationChanged-Event
         private bool _isRefreshing = false; // verhindert mehrfaches paralleles Aktualisieren
 
-        private readonly Func<Task<List<ZabbixProblem>>> _refreshAction;
-        private readonly Action _openDashboardAction;
-        private readonly ConfigService _configService; 
+        private readonly Func<Task<List<ZabbixProblem>>> _refreshAction; // Funktion, die von extern übergeben wird damit Logik nicht in der View liegt
+        private readonly Action _openDashboardAction; // Funktion, die von extern übergeben wird damit Logik nicht in der View liegt
+        private readonly ConfigService _configService;
 
         public ProblemsWindow(
             List<ZabbixProblem> problems,
+            int warningSeverityThreshold,
+            int errorSeverityThreshold,
             Func<Task<List<ZabbixProblem>>> refreshAction,
             Action openDashboardAction,
             ConfigService configService)
         {
             InitializeComponent();
 
+            // Parameter bleiben aktuell noch im Konstruktor, damit MainWindow.xaml.cs nicht angepasst werden muss
+            // Status/Farbe kommt über ProblemsMapper + ConfigService
+            _ = warningSeverityThreshold;
+            _ = errorSeverityThreshold;
+
             // übergeben von externen Funktionen
             _refreshAction = refreshAction;
             _openDashboardAction = openDashboardAction;
+
+            // Konfigurationsservice speichern und ViewModels erstellen
             _configService = configService;
 
             ApplyProblems(problems);
 
-            // Wenn das Fenster den Fokus verliert Fenster schließen werden ohne den Prozess zu killen
+            // Wenn das Fenster den Fokus verliert soll das Fenster geschlossen werden ohne den Prozess zu killen
             Deactivated += (_, _) => Hide();
 
             // nicht verschieben -> wenn es verschoben wird instant resetten nach unten rechts
@@ -111,6 +120,7 @@ namespace ZabbixTrayMonitor.Views
             _suppressLocationChanged = false;
         }
 
+        // Mapping und Statuslogik wurde in ProblemsMapper ausgelagert
         private async void Refresh_Click(object sender, RoutedEventArgs e)
         {
             if (_isRefreshing)
@@ -126,12 +136,9 @@ namespace ZabbixTrayMonitor.Views
             }
             catch (Exception ex)
             {
-                SetLoading(false);
-
                 MessageBox.Show(
                     this,
-                    $"Aktualisierung fehlgeschlagen:" +
-                    $"\n\n{ex.Message}",
+                    $"Aktualisierung fehlgeschlagen:{Environment.NewLine}{Environment.NewLine}{ex.Message}",
                     "Zabbix Probleme aktualisieren",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error
@@ -140,6 +147,7 @@ namespace ZabbixTrayMonitor.Views
             finally
             {
                 _isRefreshing = false;
+                SetLoading(false);
             }
         }
 

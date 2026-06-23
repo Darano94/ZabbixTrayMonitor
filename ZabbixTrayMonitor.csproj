@@ -1,38 +1,52 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net10.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UseWPF>true</UseWPF>
 
-  <ItemGroup>
-    <None Remove="Assets\tray-error.ico" />
-    <None Remove="Assets\tray-ok.ico" />
-    <None Remove="Assets\tray-unknown.ico" />
-    <None Remove="Assets\tray-warning.ico" />
-  </ItemGroup>
+		<Version>1.1.0</Version>
+		<AssemblyVersion>1.1.0.0</AssemblyVersion>
+		<FileVersion>1.1.0.0</FileVersion>
+		<InformationalVersion>1.1.0</InformationalVersion>
 
-  <ItemGroup>
-    <PackageReference Include="CredentialManagement" Version="1.0.2" />
-    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
-  </ItemGroup>
+		<Product>ZabbixTrayMonitor</Product>
+		<Title>Zabbix Tray Monitor</Title>
+		<Description>Kleiner Windows Tray Client fuer Zabbix</Description>
+		<Company>Darano94</Company>
+		<Authors>Darano94</Authors>
+		<Copyright>Copyright © 2026</Copyright>
 
-  <ItemGroup>
-    <Resource Include="Assets\tray-error.ico">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Assets\tray-ok.ico">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Assets\tray-unknown.ico">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Assets\tray-warning.ico">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-  </ItemGroup>
+		<ApplicationIcon>Assets\tray-ok.ico</ApplicationIcon>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Remove="Assets\tray-error.ico" />
+		<None Remove="Assets\tray-ok.ico" />
+		<None Remove="Assets\tray-unknown.ico" />
+		<None Remove="Assets\tray-warning.ico" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="CredentialManagement" Version="1.0.2" />
+		<PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Resource Include="Assets\tray-error.ico">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Assets\tray-ok.ico">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Assets\tray-unknown.ico">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Assets\tray-warning.ico">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+	</ItemGroup>
 
 </Project>

@@ -1,11 +1,14 @@
 # Zabbix Tray Monitor
 
-Kleiner Windows Tray Client für Zabbix
+Kleiner Windows Tray Client fuer Zabbix.
 
-Die Anwendung läuft im Windows System Tray und zeigt den aktuellen Zabbix-Status über ein farbiges Tray-Icon an. 
-Je nach Zustand wird sichtbar, ob es Fehler oder Warnungen gibt. 
+Die Anwendung laeuft im Windows System Tray und zeigt den aktuellen Zabbix-Status ueber ein farbiges Tray-Icon, einen kompakten Tooltip und ein kleines Problemfenster an.
 
-Über das Kontextmenü können weitere Informationen abgerufen und die Zabbix-Weboberfläche geöffnet werden.
+Je nach Zustand zeigt das Tray-Icon direkt an, ob alles fehlerfrei ist, Warnungen vorhanden sind oder Fehler vorliegen. Tooltip und Problemfenster listen die aktuellen relevanten Zabbix-Probleme auf.
+
+## Ziel
+
+Zabbix Tray Monitor soll schnell sichtbar machen, ob aktuell relevante Zabbix-Probleme vorhanden sind, ohne dass dauerhaft das Zabbix-Dashboard im Browser geoeffnet sein muss.
 
 ## Download
 
@@ -33,14 +36,17 @@ Je nach Zustand wird sichtbar, ob es Fehler oder Warnungen gibt.
 
 * Windows Tray Icon mit farbiger Statusanzeige
 * automatische Abfrage der aktuellen Zabbix-Probleme
-* Tooltip mit Fehlern und Warnungen
-* Problemfenster mit aktueller Problemliste
+* kompakter Tooltip mit Fehlern und Warnungen
+* Tooltip zeigt maximal 10 Eintraege und markiert weitere Eintraege mit `[...]`
+* Problemfenster mit aktueller Problemliste inklusive Hostnamen
+* Problemfenster zeigt Host, wichtigste Meldung, Detailinformation und Statusfarbe
+* direkte Verlinkung zum Zabbix Dashboard
 * konfigurierbares Abfrageintervall
 * konfigurierbare Severity-Schwellenwerte
 * konfigurierbare Statusfarben
 * Dark Mode / Light Mode
-* direkter Link zum Zabbix Dashboard
-* Zabbix API Token wird im Windows Credential Manager gespeichert
+* Einstellungen ueber eigenes Fenster
+* API Token wird im Windows Credential Manager gespeichert
 
 ## Config
 
@@ -67,12 +73,13 @@ Beispiel:
   "StatusColorWarning": "#F3C601",
   "StatusColorInfo": "#808080",
   "CredentialTargetSuffix": "ApiToken",
-  "CredentialUsername": "api-token-username"
+  "CredentialUsername": "api-token"
 }
 ```
 
-Der Zabbix-Api-Token wird im Windows Credential Manager gespeichert
-Das Credential Target wird aus `AppName` und `CredentialTargetSuffix` gebaut
+Der API Token wird nicht in der `config.json` gespeichert.
+
+Der Token wird im Windows Credential Manager gespeichert. Das Credential Target wird aus `AppName` und `CredentialTargetSuffix` gebaut.
 
 Beispiel:
 
@@ -80,9 +87,16 @@ Beispiel:
 ZabbixTrayMonitor.ApiToken
 ```
 
+
+Der Token braucht die benötigten Reche auf die folgenden Zabbix-Endpunkte:
+- problem.get
+- event.get
+- trigger.get
+- apiinfo.version
+
 ## Severity Mapping
 
-Die Zabbix API returned Severity-Werte zwischen 0 und 5:
+Die Zabbix API liefert Severity-Werte zwischen 0 und 5:
 
 ```text
 0 = Not classified
@@ -93,9 +107,9 @@ Die Zabbix API returned Severity-Werte zwischen 0 und 5:
 5 = Disaster
 ```
 
-`WarningSeverityThreshold` bestimmt ab welchem Wert ein Problem als Warnung gilt
+`WarningSeverityThreshold` bestimmt, ab welchem Severity-Wert ein Problem als Warnung gewertet wird.
 
-`ErrorSeverityThreshold` bestimmt ab welchem Wert ein Problem als Fehler gilt
+`ErrorSeverityThreshold` bestimmt, ab welchem Severity-Wert ein Problem als Fehler gewertet wird.
 
 Standardmaessig:
 
@@ -105,9 +119,58 @@ Severity 2-3 -> Warnung
 Severity 4-5 -> Fehler
 ```
 
+## Tray Icon Status
+
+```text
+OK       -> keine relevanten Probleme
+Warnung  -> mindestens eine Warnung
+Fehler   -> mindestens ein Fehler oder API-/Konfigurationsfehler
+Unknown  -> Initialzustand vor der ersten Abfrage
+```
+
+## Tooltip
+
+Der Tooltip ist bewusst kompakt gehalten.
+
+Angezeigt werden:
+
+```text
+Host: wichtigste Meldung
+```
+
+Wenn Fehler und Warnungen gleichzeitig vorhanden sind, werden maximal 5 Fehler und 5 Warnungen angezeigt.
+
+Wenn nur Fehler oder nur Warnungen vorhanden sind, werden maximal 10 Eintraege angezeigt.
+
+Gibt es mehr Eintraege als angezeigt werden, erscheint am Ende der jeweiligen Sektion:
+
+```text
+- [...]
+```
+
+## Problemfenster
+
+Das Problemfenster zeigt die aktuellen Zabbix-Probleme in einer kompakten Liste.
+
+Pro Eintrag werden angezeigt:
+
+```text
+Host
+wichtigste Meldung
+Detailinformation / ueberwachtes Objekt
+```
+
+Links am Eintrag zeigt ein farbiger Balken inklusive Buchstabe den Status:
+
+```text
+E = Error
+W = Warning
+I = Info
+```
+
 ## API
 
-Die Anwendung nutzt die Zabbix JSON-RPC API mit Bearer Token Authentifizierung
+Die Anwendung nutzt die Zabbix JSON-RPC API.
 
 Standard API-Pfad:
 
@@ -115,17 +178,33 @@ Standard API-Pfad:
 /api_jsonrpc.php
 ```
 
+Authentifizierung erfolgt ueber Bearer Token.
+
+Fuer die Problemliste werden die aktuellen Probleme abgefragt und mit weiteren Informationen wie Hostnamen und Trigger-/Item-Informationen angereichert.
+
+Genutzte Zabbix API-Methoden:
+
+```text
+problem.get
+event.get
+trigger.get
+apiinfo.version
+```
+
 ## Bibliotheken
 
 ### Hardcodet.NotifyIcon.Wpf
 
-WPF-Unterstuetzung fuer Windows System Tray Icons
+WPF-Unterstuetzung fuer Windows System Tray Icons.
 
 ### CredentialManagement
 
-Zugriff auf Windows Credential Manager
+Zugriff auf den Windows Credential Manager.
 
 ## Todo
 
 * Probleme acknowledgen
-* echte Hostnamen zu Problemen anzeigen (Endpunkt trigger.get)
+
+## Bugs
+
+Keine bekannten Bugs fuer V1.1.

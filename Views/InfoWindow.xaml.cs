@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Reflection;
 using System.Windows;
@@ -21,9 +22,9 @@ namespace ZabbixTrayMonitor.Views
                     : config.AppName;
 
                 var assembly = Assembly.GetEntryAssembly(); // Assembly ist die gebaute exe
-                var version = assembly?.GetName().Version?.ToString() ?? "unbekannt";
+                var assemblyVersion = assembly?.GetName().Version?.ToString() ?? "unbekannt";
                 var location = Environment.ProcessPath ?? AppContext.BaseDirectory;
-                var fileVersion = GetFileVersion(location, version);
+                var fileVersion = GetFileVersion(location, assemblyVersion);
                 var configPath = configService.GetConfigPath();
 
                 Title = $"{appName} - Info";

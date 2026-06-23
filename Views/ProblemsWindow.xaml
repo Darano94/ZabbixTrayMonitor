@@ -14,54 +14,95 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
         Closing="Window_Closing">
 
     <Window.Resources>
         <Style x:Key="ProblemItemBorderStyle" TargetType="Border">
-            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="Margin" Value="0" />
             <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
             <Setter Property="BorderThickness" Value="0,0,0,1" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="RenderTransform">
-                <Setter.Value>
-                    <TranslateTransform X="0" Y="0" />
-                </Setter.Value>
-            </Setter>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect BlurRadius="0"
-                                      ShadowDepth="0"
-                                      Opacity="0" />
-                </Setter.Value>
-            </Setter>
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
 
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
-                    <Setter Property="RenderTransform">
-                        <Setter.Value>
-                            <TranslateTransform X="0" Y="-2" />
-                        </Setter.Value>
-                    </Setter>
-                    <Setter Property="Effect">
-                        <Setter.Value>
-                            <DropShadowEffect BlurRadius="8"
-                                              ShadowDepth="2"
-                                              Color="{DynamicResource HoverShadowColor}"
-                                              Opacity="0.12" />
-                        </Setter.Value>
-                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="InvisibleScrollBarButtonStyle" TargetType="{x:Type RepeatButton}">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type RepeatButton}">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Schmale Scrollbar fürs Problemfenster -->
+        <Style TargetType="{x:Type ScrollBar}">
+            <Setter Property="Width" Value="6" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                        <Grid Width="{TemplateBinding Width}"
+                              Background="Transparent"
+                              SnapsToDevicePixels="True">
+                            <Track x:Name="PART_Track"
+                                   IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}"
+                                                  Style="{StaticResource InvisibleScrollBarButtonStyle}" />
+                                </Track.DecreaseRepeatButton>
+
+                                <Track.Thumb>
+                                    <Thumb MinHeight="26">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="{x:Type Thumb}">
+                                                <Border Background="{DynamicResource DividerBrush}"
+                                                        CornerRadius="3"
+                                                        Opacity="0.85" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}"
+                                                  Style="{StaticResource InvisibleScrollBarButtonStyle}" />
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+
+            <Style.Triggers>
+                <Trigger Property="Orientation" Value="Horizontal">
+                    <Setter Property="Height" Value="6" />
+                    <Setter Property="Width" Value="Auto" />
                 </Trigger>
             </Style.Triggers>
         </Style>
     </Window.Resources>
 
-    <Grid Margin="0">
+    <Grid Margin="0"
+          SnapsToDevicePixels="True">
+
         <Border CornerRadius="8"
                 Background="{DynamicResource WindowBackgroundBrush}"
-                Padding="12"
+                Padding="0,12,0,12"
                 Margin="8"
+                SnapsToDevicePixels="True"
                 Effect="{x:Null}">
 
             <!-- Outer panel -->
@@ -73,7 +114,7 @@
 
                 <!-- Header -->
                 <Grid Grid.Row="0"
-                      Margin="0,0,0,10">
+                      Margin="12,0,12,10">
 
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -134,44 +175,85 @@
                                Text="Keine Probleme gefunden" />
 
                     <ScrollViewer x:Name="ProblemsScrollViewer"
+                                  Padding="0"
+                                  HorizontalScrollBarVisibility="Disabled"
                                   VerticalScrollBarVisibility="Auto">
 
-                        <ItemsControl x:Name="ProblemsItemsControl">
+                        <ItemsControl x:Name="ProblemsItemsControl"
+                                      HorizontalAlignment="Stretch">
+
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="HorizontalAlignment" Value="Stretch" />
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border Style="{StaticResource ProblemItemBorderStyle}"
+                                            Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"
                                             MouseLeftButtonUp="ProblemItem_Click">
 
-                                        <Grid>
+                                        <Grid HorizontalAlignment="Stretch"
+                                              SnapsToDevicePixels="True">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="8" />
+                                                <ColumnDefinition Width="14" />
                                                 <ColumnDefinition Width="*" />
                                             </Grid.ColumnDefinitions>
 
                                             <Border Grid.Column="0"
-                                                    Background="{Binding StatusColor}" />
+                                                    Background="{Binding StatusColor}">
+                                                <TextBlock Text="{Binding StatusInitial}"
+                                                           Foreground="White"
+                                                           FontWeight="Bold"
+                                                           FontSize="11"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                                            </Border>
 
                                             <StackPanel Grid.Column="1"
-                                                        Margin="8,4,4,8">
+                                                        Margin="8,3,8,5">
 
-                                                <TextBlock Text="{Binding Host}"
-                                                           Foreground="{DynamicResource SecondaryTextBrush}"
-                                                           FontSize="11" />
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
 
-                                                <TextBlock Text="{Binding Status}"
+                                                    <TextBlock Grid.Column="0"
+                                                               Text="{Binding Host}"
+                                                               Foreground="{DynamicResource SecondaryTextBrush}"
+                                                               FontSize="11"
+                                                               TextTrimming="CharacterEllipsis" />
+
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Time}"
+                                                               Foreground="{DynamicResource SecondaryTextBrush}"
+                                                               FontSize="9"
+                                                               Margin="8,1,0,0" />
+                                                </Grid>
+
+                                                <TextBlock Text="{Binding Name}"
+                                                           TextTrimming="CharacterEllipsis"
                                                            Foreground="{DynamicResource PrimaryTextBrush}"
                                                            FontWeight="Bold"
                                                            FontSize="13" />
 
-                                                <TextBlock Text="{Binding Name}"
-                                                           TextWrapping="Wrap"
+                                                <TextBlock Text="{Binding Message}"
+                                                           TextTrimming="CharacterEllipsis"
                                                            Foreground="{DynamicResource PrimaryTextBrush}"
-                                                           FontSize="12" />
-
-                                                <TextBlock Text="{Binding Time}"
-                                                           Foreground="{DynamicResource SecondaryTextBrush}"
-                                                           FontSize="10"
-                                                           Margin="0,3,0,0" />
+                                                           FontSize="12">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                            <Style.Triggers>
+                                                                <Trigger Property="Text" Value="">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </Trigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
                                             </StackPanel>
                                         </Grid>
                                     </Border>

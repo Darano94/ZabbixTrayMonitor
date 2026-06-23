@@ -23,6 +23,7 @@ namespace ZabbixTrayMonitor
         private readonly DispatcherTimer _refreshTimer = new();
         private List<ZabbixProblem> _currentProblems = new();
         private ProblemsWindow? _problemsWindow;
+        private string? _lastRefreshError;
         private bool _isRefreshing = false;
         private bool _ignoreNextTrayLeftClick = false;
         // Unterdrücke das Öffnen des eigenen Tooltips kurz nachdem das Kontextmenü geöffnet wurde
@@ -210,12 +211,21 @@ namespace ZabbixTrayMonitor
 
             await RefreshProblemsAsync();
 
+            // Wenn der letzte Refresh fehlgeschlagen ist, keine alten Problem-Daten anzeigen
+            if (!string.IsNullOrWhiteSpace(_lastRefreshError))
+            {
+                _problemsWindow?.Hide();
+                return;
+            }
+
             // Singleton für ProblemsWindow
             // Fenster aktualisiert sich immer mit den aktuellen Daten wenn es geöffnet wird damit keine Cacheprobleme 
             if (_problemsWindow == null)
             {
                 _problemsWindow = new ProblemsWindow(
                     _currentProblems,
+                    config.WarningSeverityThreshold,
+                    config.ErrorSeverityThreshold,
                     async () =>
                     {
                         await RefreshProblemsAsync();
@@ -297,6 +307,7 @@ namespace ZabbixTrayMonitor
                 );
 
                 _currentProblems = problems;
+                _lastRefreshError = null;
                 var lastUpdated = DateTime.Now;
 
                 // zähle alle Probleme mit einer Severity >= unserem Error Schwellenwert
@@ -345,17 +356,29 @@ namespace ZabbixTrayMonitor
                 }
                 catch { }
 
+                _lastRefreshError = ex.Message;
+                _currentProblems = new List<ZabbixProblem>();
+
+                // Wenn ein API-/Netzwerkfehler passiert, keine alten Probleme mehr anzeigen
+                try
+                {
+                    if (_problemsWindow?.IsVisible == true)
+                    {
+                        _problemsWindow.UpdateProblems(_currentProblems);
+                    }
+                }
+                catch { }
+
                 var lastUpdated = DateTime.Now;
                 var cfg = _configService.Load();
-
                 var lines = new List<string>
                 {
                     string.IsNullOrWhiteSpace(cfg.AppName) ? "Zabbix Tray Monitor" : cfg.AppName,
                     "---------",
                     $"FEHLER: {ex.Message}",
                     "---------",
-                    $"Aktualisiert um: {lastUpdated:HH:mm:ss} Uhr",
-                    $"Zabbix-Server: {cfg.ZabbixUrl}"
+                    $"Zabbix-Server: {cfg.ZabbixUrl}",
+                    $"Aktualisiert am: {lastUpdated:dd.MM.yyyy HH:mm:ss} Uhr"
                 };
 
                 UpdateTrayToolTip(string.Join(Environment.NewLine, lines));
@@ -382,30 +405,30 @@ namespace ZabbixTrayMonitor
             int warningCount,
             DateTime lastUpdated)
         {
-            // Aufbau Tooltip: AppName, separator, Fehler-Sektion, separator, Warnungen-Sektion, separator, Aktualisiert + Zabbix-Server (unten)
+            // Tooltip bewusst kompakt halten:
+            // nur Host + wichtigste Meldung anzeigen, keine Uhrzeit pro Item und keine Detailzeile
             var lines = new List<string>
-            {
-                string.IsNullOrWhiteSpace(config.AppName) ? "Zabbix Tray Monitor" : config.AppName,
-                "---------"
-            };
+    {
+        string.IsNullOrWhiteSpace(config.AppName) ? "Zabbix Tray Monitor" : config.AppName,
+        "---------"
+    };
 
-            // Wenn es weder Fehler noch Warnungen gibt, klaren Hinweis anzeigen und frühzeitig beenden
             if (errorCount == 0 && warningCount == 0)
             {
                 lines.Add("Keine Probleme");
                 lines.Add("---------");
-                lines.Add($"Aktualisiert um: {lastUpdated:HH:mm:ss} Uhr");
                 lines.Add($"Zabbix-Server: {config.ZabbixUrl}");
+                lines.Add($"Aktualisiert am: {lastUpdated:dd.MM.yyyy HH:mm:ss} Uhr");
                 return string.Join(Environment.NewLine, lines);
             }
 
-            var errorItemsAll = problems
+            var errorProblems = problems
                 .Where(p => p.Severity >= config.ErrorSeverityThreshold)
                 .OrderByDescending(p => p.Severity)
                 .ThenByDescending(p => p.Time)
                 .ToList();
 
-            var warningItemsAll = problems
+            var warningProblems = problems
                 .Where(p =>
                     p.Severity >= config.WarningSeverityThreshold &&
                     p.Severity < config.ErrorSeverityThreshold)
@@ -413,30 +436,29 @@ namespace ZabbixTrayMonitor
                 .ThenByDescending(p => p.Time)
                 .ToList();
 
+            var errorItems = ProblemsMapper.BuildViewModels(errorProblems, config);
+            var warningItems = ProblemsMapper.BuildViewModels(warningProblems, config);
+
             if (errorCount > 0 && warningCount > 0)
             {
-                // Fehler + Warnungen: maximal 5 Fehler und maximal 5 Warnungen anzeigen
-                AddProblemSection(lines, "Fehler", errorCount, errorItemsAll, 5);
+                AddProblemSection(lines, "Fehler", errorCount, errorItems, 5);
 
                 lines.Add("---------");
 
-                AddProblemSection(lines, "Warnungen", warningCount, warningItemsAll, 5);
+                AddProblemSection(lines, "Warnungen", warningCount, warningItems, 5);
             }
             else if (errorCount > 0)
             {
-                // Nur Fehler: maximal 10 Fehler anzeigen, keine Warnungen = 0 anzeigen
-                AddProblemSection(lines, "Fehler", errorCount, errorItemsAll, 10);
+                AddProblemSection(lines, "Fehler", errorCount, errorItems, 10);
             }
             else if (warningCount > 0)
             {
-                // Nur Warnungen: maximal 10 Warnungen anzeigen, keine Fehler = 0 anzeigen
-                AddProblemSection(lines, "Warnungen", warningCount, warningItemsAll, 10);
+                AddProblemSection(lines, "Warnungen", warningCount, warningItems, 10);
             }
 
-            // Abschluss: Aktualisiert + Zabbix-Server ganz unten
             lines.Add("---------");
-            lines.Add($"Aktualisiert um: {lastUpdated:HH:mm:ss} Uhr");
             lines.Add($"Zabbix-Server: {config.ZabbixUrl}");
+            lines.Add($"Aktualisiert am: {lastUpdated:dd.MM.yyyy HH:mm:ss} Uhr");
 
             return string.Join(Environment.NewLine, lines);
         }
@@ -445,20 +467,39 @@ namespace ZabbixTrayMonitor
             List<string> lines,
             string title,
             int count,
-            List<ZabbixProblem> problems,
+            List<ProblemListItem> problems,
             int maxVisibleItems)
         {
             lines.Add($"{title}: {count}");
 
-            foreach (var p in problems.Take(maxVisibleItems))
+            foreach (var problem in problems.Take(maxVisibleItems))
             {
-                var text = string.IsNullOrWhiteSpace(p.Name) ? "(kein Text)" : p.Name;
+                var host = string.IsNullOrWhiteSpace(problem.Host)
+                    ? "Zabbix"
+                    : problem.Host;
 
-                // Entferne Zeilenumbrüche im Text, damit Tooltip-Layout stabil bleibt
-                text = text.Replace("\r", " ").Replace("\n", " ").Trim();
+                var message = string.IsNullOrWhiteSpace(problem.Name)
+                    ? "(kein Text)"
+                    : problem.Name;
 
-                lines.Add($"- {text}");
+                host = CleanToolTipLine(host);
+                message = CleanToolTipLine(message);
+
+                lines.Add($"- {host}: {message}");
             }
+
+            if (problems.Count > maxVisibleItems)
+            {
+                lines.Add("- [...]");
+            }
+        }
+
+        private static string CleanToolTipLine(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return "";
+
+            return value.Replace("\r", " ").Replace("\n", " ").Trim();
         }
 
         private void SetTrayIcon(string iconFileName)
