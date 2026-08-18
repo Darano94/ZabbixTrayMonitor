@@ -32,11 +32,25 @@ namespace ZabbixTrayMonitor.Services
             return ignoreCertificateErrors ? _insecureClient : _defaultClient;
         }
 
-        public async Task<List<ZabbixProblem>> GetProblemsAsync(string zabbixUrl, string zabbixApiEndpoint, string apiToken, bool ignoreCertificateErrors)
+        public async Task<List<ZabbixProblem>> GetProblemsAsync(
+            string zabbixUrl,
+            string zabbixApiEndpoint,
+            string apiToken,
+            int minimumSeverity,
+            bool ignoreCertificateErrors)
         {
             var apiUrl = BuildApiUrl(zabbixUrl, zabbixApiEndpoint);
 
             var client = GetClient(ignoreCertificateErrors);
+
+            // Zabbix-Severity ist 0..5. Die Anwendung behandelt alles unterhalb
+            // WarningSeverityThreshold als ignoriert, deshalb schon serverseitig
+            // nur die relevanten Severities abfragen.
+            var clampedMinimumSeverity = Math.Clamp(minimumSeverity, 0, 5);
+            var relevantSeverities = Enumerable.Range(
+                clampedMinimumSeverity,
+                6 - clampedMinimumSeverity
+            ).ToArray();
 
             var requestObj = new
             {
@@ -56,6 +70,11 @@ namespace ZabbixTrayMonitor.Services
                     recent = false,
                     suppressed = false,
                     symptom = false,
+
+                    // problem.get unterstuetzt in Zabbix 7.4 offiziell den
+                    // Parameter "severities". Dadurch werden z. B. Severity 0/1
+                    // bei der Standardkonfiguration gar nicht erst geladen.
+                    severities = relevantSeverities,
 
                     sortfield = new[] { "eventid" },
                     sortorder = "DESC"

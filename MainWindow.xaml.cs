@@ -303,6 +303,7 @@ namespace ZabbixTrayMonitor
                     config.ZabbixUrl,
                     config.ZabbixApiEndpoint,
                     token,
+                    config.WarningSeverityThreshold,
                     config.IgnoreCertificateErrors
                 );
 

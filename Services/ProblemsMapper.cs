@@ -15,6 +15,10 @@ namespace ZabbixTrayMonitor.Services
             if (problems == null) return new List<ProblemListItem>();
 
             return problems
+                // Alles unterhalb der konfigurierten Warn-Schwelle ist laut
+                // Severity-Mapping bewusst ignoriert und darf nicht im
+                // Problemfenster als INFO auftauchen.
+                .Where(p => p.Severity >= config.WarningSeverityThreshold)
                 .OrderByDescending(p => p.Severity)
                 .ThenByDescending(p => p.Time)
                 .Select(p =>
