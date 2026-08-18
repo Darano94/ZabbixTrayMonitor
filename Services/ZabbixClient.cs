@@ -45,6 +45,18 @@ namespace ZabbixTrayMonitor.Services
                 @params = new
                 {
                     output = new[] { "eventid", "objectid", "name", "severity", "clock", "acknowledged", "opdata" },
+
+                    // Dashboard-nahe Problemmenge:
+                    // - nur Trigger-Probleme
+                    // - nur ungelöste Probleme
+                    // - unterdrückte Probleme (z. B. Wartung / manuelle Suppression) ausblenden
+                    // - Symptom-Probleme nicht zusätzlich als eigene Zeile anzeigen
+                    source = 0,
+                    @object = 0,
+                    recent = false,
+                    suppressed = false,
+                    symptom = false,
+
                     sortfield = new[] { "eventid" },
                     sortorder = "DESC"
                 },
@@ -118,8 +130,12 @@ namespace ZabbixTrayMonitor.Services
                 });
             }
 
+            // problem.get kann noch offene Events liefern, deren Trigger/Host/Item inzwischen
+            // deaktiviert wurde. Das Zabbix-Frontend blendet solche Probleme aus.
+            // Deshalb zuerst auf aktuell überwachte Trigger filtern und erst danach
+            // weitere Details für die verbleibenden Probleme laden.
+            await FilterMonitoredTriggersAndAddDetailsAsync(client, apiUrl, apiToken, problems);
             await AddHostNamesToProblemsAsync(client, apiUrl, apiToken, problems);
-            await AddTriggerDetailsToProblemsAsync(client, apiUrl, apiToken, problems);
 
             return problems;
         }
@@ -225,9 +241,13 @@ namespace ZabbixTrayMonitor.Services
             }
         }
 
-        // Holt Item-/Triggerdetails zu den TriggerIds nach
-        // damit im ProblemWindow nicht nur der rohe Problemtext steht sondern was überwacht wird
-        private static async Task AddTriggerDetailsToProblemsAsync(
+        // Holt die zu den Problemen gehörenden Trigger nach und filtert dabei auf
+        // aktuell überwachte Trigger. Zabbix 7.4 trigger.get monitored=true bedeutet:
+        // Trigger enabled + Host monitored + alle verwendeten Items enabled.
+        // Dadurch werden z. B. offene Alt-Probleme eines später deaktivierten Triggers
+        // nicht mehr im Tray angezeigt, genau wie im Zabbix-Frontend.
+        // Gleichzeitig werden Item-/Triggerdetails für die Anzeige nachgeladen.
+        private static async Task FilterMonitoredTriggersAndAddDetailsAsync(
             HttpClient client,
             string apiUrl,
             string apiToken,
@@ -250,6 +270,11 @@ namespace ZabbixTrayMonitor.Services
                 {
                     output = new[] { "triggerid", "description", "event_name" },
                     triggerids = triggerIds,
+
+                    // Laut Zabbix 7.4 API offiziell unterstützt:
+                    // nur enabled Trigger auf monitored Hosts, die nur enabled Items verwenden.
+                    monitored = true,
+
                     selectItems = new[] { "itemid", "name", "key_" }
                 },
                 id = 422
@@ -276,6 +301,7 @@ namespace ZabbixTrayMonitor.Services
             if (!document.RootElement.TryGetProperty("result", out var result))
                 return;
 
+            var monitoredTriggerIds = new HashSet<string>();
             var monitoredObjectsByTriggerId = new Dictionary<string, string>();
 
             foreach (var trigger in result.EnumerateArray())
@@ -286,6 +312,10 @@ namespace ZabbixTrayMonitor.Services
 
                 if (string.IsNullOrWhiteSpace(triggerId))
                     continue;
+
+                // Jeder Trigger, den trigger.get mit monitored=true zurückliefert,
+                // darf in der Tray-Problemliste bleiben.
+                monitoredTriggerIds.Add(triggerId);
 
                 if (!trigger.TryGetProperty("items", out var itemsElement) || itemsElement.ValueKind != JsonValueKind.Array)
                     continue;
@@ -313,6 +343,13 @@ namespace ZabbixTrayMonitor.Services
                 if (itemNames.Count > 0)
                     monitoredObjectsByTriggerId[triggerId] = string.Join(", ", itemNames.Distinct().Take(2));
             }
+
+            // problem.get kann ungelöste Alt-Probleme eines inzwischen deaktivierten
+            // Triggers/Hosts/Items weiterhin liefern. Diese Trigger fehlen in der
+            // monitored=true-Antwort und werden deshalb hier entfernt.
+            problems.RemoveAll(problem =>
+                string.IsNullOrWhiteSpace(problem.TriggerId) ||
+                !monitoredTriggerIds.Contains(problem.TriggerId));
 
             foreach (var problem in problems)
             {
