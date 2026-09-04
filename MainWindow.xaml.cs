@@ -224,14 +224,16 @@ namespace ZabbixTrayMonitor
             {
                 _problemsWindow = new ProblemsWindow(
                     _currentProblems,
-                    config.WarningSeverityThreshold,
-                    config.ErrorSeverityThreshold,
                     async () =>
                     {
                         await RefreshProblemsAsync();
                         return _currentProblems;
                     },
                     () => OpenZabbixDashboard(),
+                    async (eventId, suppressUntil, message) =>
+                    {
+                        await ExecuteProblemActionAsync(eventId, suppressUntil, message);
+                    },
                     _configService
                 );
             }
@@ -263,6 +265,39 @@ namespace ZabbixTrayMonitor
             _refreshTimer.Stop();
             _refreshTimer.Interval = TimeSpan.FromSeconds(config.PollIntervalSeconds);
             _refreshTimer.Start();
+        }
+
+        private async Task ExecuteProblemActionAsync(string eventId, DateTime? suppressUntil, string? messageOverride)
+        {
+            var config = _configService.Load();
+            var credSuffix = string.IsNullOrWhiteSpace(config.CredentialTargetSuffix)
+                ? "ApiToken"
+                : config.CredentialTargetSuffix;
+
+            var token = CredentialService.GetTokenForApp(config.AppName, credSuffix);
+
+            if (string.IsNullOrWhiteSpace(config.ZabbixUrl))
+                throw new Exception("Keine Zabbix URL konfiguriert");
+
+            if (string.IsNullOrWhiteSpace(token))
+                throw new Exception("Kein API Token gespeichert");
+
+            var defaultMessage =
+                ZabbixConfig.ResolveAcknowledgeMessage(config.AcknowledgeMessage);
+
+            var message = string.IsNullOrWhiteSpace(messageOverride)
+                ? defaultMessage
+                : messageOverride.Trim();
+
+            await _zabbixClient.AcknowledgeProblemAsync(
+                config.ZabbixUrl,
+                config.ZabbixApiEndpoint,
+                token,
+                config.IgnoreCertificateErrors,
+                eventId,
+                suppressUntil,
+                message
+            );
         }
 
         private async Task RefreshProblemsAsync()
@@ -307,15 +342,22 @@ namespace ZabbixTrayMonitor
                     config.IgnoreCertificateErrors
                 );
 
-                _currentProblems = problems;
+                // Unterdrückte Probleme zentral filtern, damit Tray-Status, Tooltip und
+                // Problemfenster immer mit exakt derselben Problemmenge arbeiten.
+                // Bestätigte, aber nicht unterdrückte Probleme bleiben weiterhin sichtbar.
+                var visibleProblems = config.ShowSuppressedProblems
+                    ? problems
+                    : problems.Where(p => !p.Suppressed).ToList();
+
+                _currentProblems = visibleProblems;
                 _lastRefreshError = null;
                 var lastUpdated = DateTime.Now;
 
-                // zähle alle Probleme mit einer Severity >= unserem Error Schwellenwert
-                var errorCount = problems.Count(p => p.Severity >= config.ErrorSeverityThreshold);
+                // zähle alle sichtbaren Probleme mit einer Severity >= unserem Error Schwellenwert
+                var errorCount = visibleProblems.Count(p => p.Severity >= config.ErrorSeverityThreshold);
 
-                // zähle alle Probleme die mindestens unserem Warnungs Schwellenwert entsprechen aber noch kein Error sind
-                var warningCount = problems.Count(p =>
+                // zähle alle sichtbaren Probleme die mindestens unserem Warnungs Schwellenwert entsprechen aber noch kein Error sind
+                var warningCount = visibleProblems.Count(p =>
                     p.Severity >= config.WarningSeverityThreshold &&
                     p.Severity < config.ErrorSeverityThreshold
                 );
@@ -330,7 +372,7 @@ namespace ZabbixTrayMonitor
 
                 var fullText = BuildTrayToolTipText(
                     config,
-                    problems,
+                    visibleProblems,
                     errorCount,
                     warningCount,
                     lastUpdated

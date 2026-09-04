@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using ZabbixTrayMonitor.Models;
@@ -28,6 +28,7 @@ namespace ZabbixTrayMonitor.Services
 
                     return new ProblemListItem
                     {
+                        EventId = p.EventId,
                         Status = GetStatus(p.Severity, config.WarningSeverityThreshold, config.ErrorSeverityThreshold),
                         StatusInitial = GetStatusInitial(p.Severity, config.WarningSeverityThreshold, config.ErrorSeverityThreshold),
                         Severity = p.Severity,
@@ -40,6 +41,8 @@ namespace ZabbixTrayMonitor.Services
 
                         Time = p.Time.ToString("dd-MM-yyyy HH:mm:ss"),
                         Acknowledged = p.Acknowledged,
+                        Suppressed = p.Suppressed,
+                        SuppressedUntil = p.SuppressedUntil,
                         StatusColor = GetStatusColor(p.Severity, config),
                         Host = hostName
                     };

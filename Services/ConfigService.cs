@@ -47,7 +47,24 @@ namespace ZabbixTrayMonitor.Services
                 var json = File.ReadAllText(_configPath);
 
                 // wandelt JSON in ZabbixConfig-Objekt um, falls ungültig wird ein neues Objekt zurückgegeben
-                return JsonSerializer.Deserialize<ZabbixConfig>(json, _jsonOptions) ?? new ZabbixConfig();
+                var config = JsonSerializer.Deserialize<ZabbixConfig>(json, _jsonOptions) ?? new ZabbixConfig();
+
+                // Migration des bisherigen Standardtexts. Eigene konfigurierte Nachrichten bleiben erhalten.
+                // Den normalisierten Wert direkt speichern, damit der Legacy-Default nicht bei jedem Start
+                // erneut aus der bestehenden config.json geladen wird.
+                var resolvedAcknowledgeMessage =
+                    ZabbixConfig.ResolveAcknowledgeMessage(config.AcknowledgeMessage);
+
+                if (!string.Equals(
+                        config.AcknowledgeMessage,
+                        resolvedAcknowledgeMessage,
+                        StringComparison.Ordinal))
+                {
+                    config.AcknowledgeMessage = resolvedAcknowledgeMessage;
+                    Save(config);
+                }
+
+                return config;
             }
             catch
             {

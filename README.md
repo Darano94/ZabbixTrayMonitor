@@ -6,6 +6,27 @@ Die Anwendung laeuft im Windows System Tray und zeigt den aktuellen Zabbix-Statu
 
 Je nach Zustand zeigt das Tray-Icon direkt an, ob alles fehlerfrei ist, Warnungen vorhanden sind oder Fehler vorliegen. Tooltip und Problemfenster listen die aktuellen relevanten Zabbix-Probleme auf.
 
+## Funktionen
+
+- Tray-Status fuer OK, Warnung, Fehler und unbekannten Zustand
+- Automatische Aktualisierung ueber konfigurierbares Abfrageintervall
+- Kompakter Tooltip mit den wichtigsten aktuellen Problemen
+- Problemfenster mit Host, Zeit, Meldung und ueberwachtem Objekt
+- Dark- und Light-Mode
+- API-Token im Windows Credential Manager
+- Alarmbearbeitung direkt im Problemfenster:
+  - Nur bestaetigen
+  - Fuer 5 Minuten unterdruecken
+  - Fuer 15 Minuten unterdruecken
+  - Fuer 1 Stunde unterdruecken
+  - Fuer 3 Stunden unterdruecken
+  - Fuer 1 Tag unterdruecken
+  - Unterdruecken bis zu einem frei waehlbaren Datum/Zeitpunkt
+- Konfigurierbare Standardnachricht fuer Bestaetigungen/Unterdrueckungen
+- Nachricht kann pro Aktion direkt im Kontextmenue ueberschrieben werden
+- Unterdrueckte Probleme koennen wahlweise weiterhin angezeigt werden
+- Optionaler automatischer Refresh nach einer Alarmaktion
+
 ## Download
 
 [![Download](https://img.shields.io/badge/Download-Releases-blue)](https://github.com/Darano94/ZabbixTrayMonitor/releases)
@@ -23,6 +44,10 @@ Je nach Zustand zeigt das Tray-Icon direkt an, ob alles fehlerfrei ist, Warnunge
 ### Problemfenster
 
 <img src="Assets/README/problems-window.png" alt="Problemfenster" width="290">
+
+### Alarmbearbeitung
+
+<img src="Assets/README/alarm-editing.png" alt="Alarmbearbeitung" width="420">
 
 ### Einstellungen
 
@@ -46,6 +71,9 @@ Beispiel:
   "PollIntervalSeconds": 60,
   "IgnoreCertificateErrors": true,
   "UseDarkMode": true,
+  "ShowSuppressedProblems": false,
+  "RefreshAfterProblemAction": true,
+  "AcknowledgeMessage": "Bestätigt von max.mustermann",
   "AppName": "ZabbixTrayMonitor",
   "WarningSeverityThreshold": 2,
   "ErrorSeverityThreshold": 4,
@@ -59,20 +87,13 @@ Beispiel:
 
 Der API Token wird nicht in der `config.json` gespeichert.
 
-Der Token wird im Windows Credential Manager gespeichert. Das Credential Target wird aus `AppName` und `CredentialTargetSuffix` gebaut.
+Der Token wird im Windows Credential Manager gespeichert.
 
 Beispiel:
 
 ```text
 ZabbixTrayMonitor.ApiToken
 ```
-
-
-Der Token braucht die benötigten Reche auf die folgenden Zabbix-Endpunkte:
-- problem.get
-- event.get
-- trigger.get
-- apiinfo.version
 
 ## Severity Mapping
 
@@ -99,9 +120,19 @@ Severity 2-3 -> Warnung
 Severity 4-5 -> Fehler
 ```
 
+## Alarmbearbeitung
+
+Ein Rechtsklick auf ein Problem oeffnet das Menue `Alarm bearbeiten`.
+
+`Nur bestaetigen...` fuehrt in Zabbix `event.acknowledge` mit Bestaetigung und Nachricht aus.
+
+Die zeitlich begrenzten Unterdrueckungen bestaetigen das Event, fuegen die Nachricht hinzu und setzen eine Unterdrueckung bis zum gewaehlten Zeitpunkt.
+
+Wenn `ShowSuppressedProblems` auf `false` steht, werden unterdrueckte Probleme aus Tray-Status, Tooltip und Problemfenster ausgeblendet.
+
 ## API
 
-Die Anwendung nutzt die Zabbix JSON-RPC API
+Die Anwendung nutzt die Zabbix JSON-RPC API.
 
 Standard API-Pfad:
 
@@ -111,7 +142,7 @@ Standard API-Pfad:
 
 Authentifizierung erfolgt ueber Bearer Token.
 
-Fuer die Problemliste werden die aktuellen Probleme abgefragt und mit weiteren Informationen wie Hostnamen und Trigger-/Item-Informationen angereichert.
+Fuer die Problemliste werden die aktuellen Probleme gesammelt abgefragt und mit Hostnamen sowie Trigger-/Item-Informationen angereichert. Es wird nicht pro Problem ein einzelner API-Request ausgefuehrt.
 
 Genutzte Zabbix API-Methoden:
 
@@ -119,8 +150,11 @@ Genutzte Zabbix API-Methoden:
 problem.get
 event.get
 trigger.get
+event.acknowledge
 apiinfo.version
 ```
+
+Der API Token braucht die benoetigten Rechte fuer diese Methoden. Fuer die Alarmbearbeitung muessen ausserdem die Zabbix-Berechtigungen des Token-Benutzers das Bestaetigen bzw. Unterdruecken der betreffenden Events erlauben.
 
 ## Bibliotheken
 
@@ -131,7 +165,3 @@ WPF-Unterstuetzung fuer Windows System Tray Icons.
 ### CredentialManagement
 
 Zugriff auf den Windows Credential Manager.
-
-## Todo
-
-* Probleme acknowledgen

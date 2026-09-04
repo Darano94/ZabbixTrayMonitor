@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
+using ZabbixTrayMonitor.Models;
 using ZabbixTrayMonitor.Services;
 
 // Einstellungs-WPF-Fenster
@@ -108,6 +109,12 @@ namespace ZabbixTrayMonitor
             StatusColorWarningTextBox.Text = config.StatusColorWarning;
             StatusColorInfoTextBox.Text = config.StatusColorInfo;
 
+            // Alarmbearbeitung
+            ShowSuppressedProblemsCheckBox.IsChecked = config.ShowSuppressedProblems;
+            RefreshAfterProblemActionCheckBox.IsChecked = config.RefreshAfterProblemAction;
+            AcknowledgeMessageTextBox.Text =
+                ZabbixConfig.ResolveAcknowledgeMessage(config.AcknowledgeMessage);
+
             // Credential UI
             CredentialTargetPrefixTextBox.Text = appName + ".";
             CredentialTargetSuffixTextBox.Text = credentialSuffix;
@@ -202,6 +209,10 @@ namespace ZabbixTrayMonitor
             existingConfig.StatusColorError = NormalizeHexColor(StatusColorErrorTextBox.Text, "#FF0015");
             existingConfig.StatusColorWarning = NormalizeHexColor(StatusColorWarningTextBox.Text, "#F3C601");
             existingConfig.StatusColorInfo = NormalizeHexColor(StatusColorInfoTextBox.Text, "#808080");
+            existingConfig.ShowSuppressedProblems = ShowSuppressedProblemsCheckBox.IsChecked == true;
+            existingConfig.RefreshAfterProblemAction = RefreshAfterProblemActionCheckBox.IsChecked == true;
+            existingConfig.AcknowledgeMessage =
+                ZabbixConfig.ResolveAcknowledgeMessage(AcknowledgeMessageTextBox.Text);
 
             if (!SaveCredentialChanges(fullTargetOld, fullTargetNew, credentialUsername))
                 return;

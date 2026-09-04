@@ -14,6 +14,8 @@ namespace ZabbixTrayMonitor.Models
         public string OperationalData { get; set; } = "";
         public int Severity { get; set; }
         public DateTime Time { get; set; }
-        public bool Acknowledged { get; set; } // todo
+        public bool Acknowledged { get; set; }
+        public bool Suppressed { get; set; }
+        public DateTime? SuppressedUntil { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -58,18 +58,22 @@ namespace ZabbixTrayMonitor.Services
                 method = "problem.get",
                 @params = new
                 {
-                    output = new[] { "eventid", "objectid", "name", "severity", "clock", "acknowledged", "opdata" },
+                    output = new[] { "eventid", "objectid", "name", "severity", "clock", "acknowledged", "suppressed", "opdata" },
 
                     // Dashboard-nahe Problemmenge:
                     // - nur Trigger-Probleme
                     // - nur ungelöste Probleme
-                    // - unterdrückte Probleme (z. B. Wartung / manuelle Suppression) ausblenden
+                    // - unterdrückte Probleme mit abrufen, damit die Anwendung sie
+                    //   abhängig von ShowSuppressedProblems einheitlich filtern kann
                     // - Symptom-Probleme nicht zusätzlich als eigene Zeile anzeigen
                     source = 0,
                     @object = 0,
                     recent = false,
-                    suppressed = false,
                     symptom = false,
+
+                    // Liefert Details zu aktiven Wartungen/manuellen Unterdrückungen.
+                    // suppress_until wird daraus für das Model ermittelt.
+                    selectSuppressionData = new[] { "maintenanceid", "userid", "suppress_until" },
 
                     // problem.get unterstuetzt in Zabbix 7.4 offiziell den
                     // Parameter "severities". Dadurch werden z. B. Severity 0/1
@@ -145,7 +149,12 @@ namespace ZabbixTrayMonitor.Services
                     Time = DateTimeOffset.FromUnixTimeSeconds(clock).LocalDateTime,
 
                     Acknowledged = item.TryGetProperty("acknowledged", out var acknowledgedElement) &&
-                                   acknowledgedElement.GetString() == "1"
+                                   IsApiFlagSet(acknowledgedElement),
+
+                    Suppressed = item.TryGetProperty("suppressed", out var suppressedElement) &&
+                                 IsApiFlagSet(suppressedElement),
+
+                    SuppressedUntil = GetSuppressedUntil(item)
                 });
             }
 
@@ -379,6 +388,74 @@ namespace ZabbixTrayMonitor.Services
             }
         }
 
+        public async Task AcknowledgeProblemAsync(
+            string zabbixUrl,
+            string zabbixApiEndpoint,
+            string apiToken,
+            bool ignoreCertificateErrors,
+            string eventId,
+            DateTime? suppressUntil,
+            string message)
+        {
+            if (string.IsNullOrWhiteSpace(eventId))
+                throw new ArgumentException("EventId darf nicht leer sein", nameof(eventId));
+
+            if (string.IsNullOrWhiteSpace(message))
+                throw new ArgumentException("Nachricht darf nicht leer sein", nameof(message));
+
+            if (suppressUntil.HasValue && suppressUntil.Value <= DateTime.Now)
+                throw new ArgumentException("Unterdrückungszeitpunkt muss in der Zukunft liegen", nameof(suppressUntil));
+
+            var apiUrl = BuildApiUrl(zabbixUrl, zabbixApiEndpoint);
+            var client = GetClient(ignoreCertificateErrors);
+
+            var action = suppressUntil.HasValue
+                ? 38 // acknowledge + message + suppress
+                : 6; // acknowledge + message
+
+            var parameters = new Dictionary<string, object>
+            {
+                ["eventids"] = eventId,
+                ["action"] = action,
+                ["message"] = message.Trim()
+            };
+
+            if (suppressUntil.HasValue)
+            {
+                parameters["suppress_until"] = new DateTimeOffset(suppressUntil.Value).ToUnixTimeSeconds();
+            }
+
+            var requestObj = new
+            {
+                jsonrpc = "2.0",
+                method = "event.acknowledge",
+                @params = parameters,
+                id = 423
+            };
+
+            var json = JsonSerializer.Serialize(requestObj);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+            using var request = new HttpRequestMessage(HttpMethod.Post, apiUrl)
+            {
+                Content = content
+            };
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
+
+            var response = await client.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+
+            var responseJson = await response.Content.ReadAsStringAsync();
+            using var document = JsonDocument.Parse(responseJson);
+
+            // API-Fehler bei Benutzeraktionen bewusst nicht verschlucken.
+            // Der aufrufende UI-Code kann die Exception später per MessageBox anzeigen.
+            ThrowIfJsonRpcError(document.RootElement);
+
+            if (!document.RootElement.TryGetProperty("result", out _))
+                throw new Exception("Keine gültige Antwort vom Server erhalten");
+        }
+
         public async Task<string> GetVersionAsync(string zabbixUrl, string zabbixApiEndpoint, bool ignoreCertificateErrors)
         {
             var apiUrl = BuildApiUrl(zabbixUrl, zabbixApiEndpoint);
@@ -415,6 +492,64 @@ namespace ZabbixTrayMonitor.Services
                 return result.GetString() ?? "";
 
             throw new Exception("Keine gültige Antwort vom Server erhalten");
+        }
+
+        private static bool IsApiFlagSet(JsonElement element)
+        {
+            if (element.ValueKind == JsonValueKind.String)
+                return element.GetString() == "1";
+
+            if (element.ValueKind == JsonValueKind.Number && element.TryGetInt32(out var number))
+                return number == 1;
+
+            return element.ValueKind == JsonValueKind.True;
+        }
+
+        private static DateTime? GetSuppressedUntil(JsonElement problemElement)
+        {
+            if (!problemElement.TryGetProperty("suppression_data", out var suppressionData) ||
+                suppressionData.ValueKind != JsonValueKind.Array)
+            {
+                return null;
+            }
+
+            long? latestSuppressUntil = null;
+
+            foreach (var suppression in suppressionData.EnumerateArray())
+            {
+                if (!suppression.TryGetProperty("suppress_until", out var suppressUntilElement) ||
+                    !TryReadInt64(suppressUntilElement, out var suppressUntil))
+                {
+                    continue;
+                }
+
+                // Zabbix verwendet 0 für eine unbefristete Unterdrückung.
+                // Im Model bedeutet Suppressed == true + SuppressedUntil == null daher unbefristet.
+                if (suppressUntil == 0)
+                    return null;
+
+                if (suppressUntil > 0 &&
+                    (!latestSuppressUntil.HasValue || suppressUntil > latestSuppressUntil.Value))
+                {
+                    latestSuppressUntil = suppressUntil;
+                }
+            }
+
+            return latestSuppressUntil.HasValue
+                ? DateTimeOffset.FromUnixTimeSeconds(latestSuppressUntil.Value).LocalDateTime
+                : null;
+        }
+
+        private static bool TryReadInt64(JsonElement element, out long value)
+        {
+            if (element.ValueKind == JsonValueKind.Number)
+                return element.TryGetInt64(out value);
+
+            if (element.ValueKind == JsonValueKind.String)
+                return long.TryParse(element.GetString(), out value);
+
+            value = 0;
+            return false;
         }
 
         private static string BuildApiUrl(string zabbixUrl, string zabbixApiEndpoint)

@@ -35,6 +35,116 @@
             </Style.Triggers>
         </Style>
 
+
+        <!-- Eigenes ContextMenu-Template, damit das Problemmenü auch im Dark Mode
+             nicht auf das helle Windows-Standardmenü zurückfällt. -->
+        <Style x:Key="ProblemContextMenuStyle" TargetType="{x:Type ContextMenu}">
+            <Setter Property="Background" Value="{DynamicResource WindowBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="3" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ContextMenu}">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <StackPanel IsItemsHost="True"
+                                        KeyboardNavigation.DirectionalNavigation="Cycle" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ProblemMenuItemStyle" TargetType="{x:Type MenuItem}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+            <Setter Property="Padding" Value="9,5" />
+            <Setter Property="MinHeight" Value="27" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type MenuItem}">
+                        <Grid x:Name="MenuItemRoot"
+                              Background="{TemplateBinding Background}"
+                              SnapsToDevicePixels="True">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="18" />
+                            </Grid.ColumnDefinitions>
+
+                            <ContentPresenter Grid.Column="0"
+                                              Margin="{TemplateBinding Padding}"
+                                              VerticalAlignment="Center"
+                                              ContentSource="Header"
+                                              RecognizesAccessKey="True" />
+
+                            <TextBlock x:Name="SubmenuArrow"
+                                       Grid.Column="1"
+                                       Text="›"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Visibility="Collapsed" />
+
+                            <Popup x:Name="PART_Popup"
+                                   Placement="Right"
+                                   PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                   IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Fade">
+                                <Border Background="{DynamicResource WindowBackgroundBrush}"
+                                        BorderBrush="{DynamicResource DividerBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="5"
+                                        Padding="3"
+                                        SnapsToDevicePixels="True">
+                                    <StackPanel IsItemsHost="True"
+                                                KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                </Border>
+                            </Popup>
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="True">
+                                <Setter TargetName="SubmenuArrow" Property="Visibility" Value="Visible" />
+                            </Trigger>
+
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="MenuItemRoot"
+                                        Property="Background"
+                                        Value="{DynamicResource HoverBackgroundBrush}" />
+                            </Trigger>
+
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ProblemMenuSeparatorStyle" TargetType="{x:Type Separator}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Separator}">
+                        <Border Height="1"
+                                Margin="7,3"
+                                Background="{DynamicResource DividerBrush}" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="InvisibleScrollBarButtonStyle" TargetType="{x:Type RepeatButton}">
             <Setter Property="Focusable" Value="False" />
             <Setter Property="IsTabStop" Value="False" />
@@ -193,6 +303,57 @@
                                     <Border Style="{StaticResource ProblemItemBorderStyle}"
                                             Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"
                                             MouseLeftButtonUp="ProblemItem_Click">
+
+                                        <Border.ContextMenu>
+                                            <ContextMenu Opened="ProblemContextMenu_Opened"
+                                                         Style="{StaticResource ProblemContextMenuStyle}">
+                                                <MenuItem Header="Alarm bearbeiten"
+                                                          Style="{StaticResource ProblemMenuItemStyle}">
+                                                    <!-- Die Standardnachricht wird beim Öffnen automatisch geladen.
+                                                         Sie kann bei Bedarf direkt für die aktuelle Aktion überschrieben werden. -->
+                                                    <MenuItem Tag="ProblemActionMessageEditor"
+                                                              Style="{StaticResource ProblemMenuItemStyle}"
+                                                              StaysOpenOnClick="True">
+                                                        <MenuItem.Header>
+                                                            <StackPanel Width="230" Margin="0,1">
+                                                                <TextBlock Text="Text"
+                                                                           FontSize="10"
+                                                                           Foreground="{DynamicResource SecondaryTextBrush}"
+                                                                           Margin="0,0,0,3" />
+                                                                <TextBox Width="230"
+                                                                         Height="28"
+                                                                         Padding="6,4"
+                                                                         VerticalContentAlignment="Center"
+                                                                         Cursor="IBeam"
+                                                                         PreviewMouseLeftButtonDown="ProblemActionMessageTextBox_PreviewMouseLeftButtonDown" />
+                                                            </StackPanel>
+                                                        </MenuItem.Header>
+                                                    </MenuItem>
+                                                    <Separator Style="{StaticResource ProblemMenuSeparatorStyle}" />
+                                                    <MenuItem Header="Nur bestätigen..."
+                                                              Style="{StaticResource ProblemMenuItemStyle}"
+                                                              Click="AcknowledgeProblem_Click" />
+                                                    <MenuItem Header="Für 5 Minuten unterdrücken..."
+                                                              Style="{StaticResource ProblemMenuItemStyle}"
+                                                              Click="Suppress5Minutes_Click" />
+                                                    <MenuItem Header="Für 15 Minuten unterdrücken..."
+                                                              Style="{StaticResource ProblemMenuItemStyle}"
+                                                              Click="Suppress15Minutes_Click" />
+                                                    <MenuItem Header="Für 1 Stunde unterdrücken..."
+                                                              Style="{StaticResource ProblemMenuItemStyle}"
+                                                              Click="Suppress1Hour_Click" />
+                                                    <MenuItem Header="Für 3 Stunden unterdrücken..."
+                                                              Style="{StaticResource ProblemMenuItemStyle}"
+                                                              Click="Suppress3Hours_Click" />
+                                                    <MenuItem Header="Für 1 Tag unterdrücken..."
+                                                              Style="{StaticResource ProblemMenuItemStyle}"
+                                                              Click="Suppress1Day_Click" />
+                                                    <MenuItem Header="Unterdrücken bis..."
+                                                              Style="{StaticResource ProblemMenuItemStyle}"
+                                                              Click="SuppressUntil_Click" />
+                                                </MenuItem>
+                                            </ContextMenu>
+                                        </Border.ContextMenu>
 
                                         <Grid HorizontalAlignment="Stretch"
                                               SnapsToDevicePixels="True">

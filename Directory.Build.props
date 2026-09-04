@@ -1,13 +1,13 @@
-<Project>
+﻿<Project>
 	<PropertyGroup>
-		<Version>1.1.3</Version>
-		<AssemblyVersion>1.1.3.0</AssemblyVersion>
-		<FileVersion>1.1.3.0</FileVersion>
-		<InformationalVersion>1.1.3</InformationalVersion>
+		<Version>1.2.0</Version>
+		<AssemblyVersion>1.2.0.0</AssemblyVersion>
+		<FileVersion>1.2.0.0</FileVersion>
+		<InformationalVersion>1.2.0</InformationalVersion>
 		<Product>ZabbixTrayMonitor</Product>
 		<Description>Zabbix Tray Monitor</Description>
-		<Company>Darano</Company>
-		<Authors>Darano</Authors>
+		<Company>Darano94</Company>
+		<Authors>Darano94</Authors>
 		<Copyright>Copyright © 2026</Copyright>
 	</PropertyGroup>
 </Project>
