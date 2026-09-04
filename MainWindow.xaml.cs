@@ -18,11 +18,13 @@ namespace ZabbixTrayMonitor
         private readonly ZabbixClient _zabbixClient = new();
         private readonly ConfigService _configService = new();
         private readonly DispatcherTimer _refreshTimer = new();
+        private readonly DispatcherTimer _trayToolTipDelayTimer = new();
         private List<ZabbixProblem> _currentProblems = new();
         private ProblemsWindow? _problemsWindow;
         private string? _lastRefreshError;
         private bool _isRefreshing = false;
         private bool _ignoreNextTrayLeftClick = false;
+        private bool _trayToolTipOpenRequested = false;
 
         public MainWindow()
         {
@@ -37,6 +39,10 @@ namespace ZabbixTrayMonitor
 
             // RefreshTimer für Probleme initialisieren abhängig vom Pollintervall in den Einstellungen
             _refreshTimer.Tick += async (_, _) => await RefreshProblemsAsync();
+
+            // Der Windows-Tray meldet zuverlässig, wann der Mauszeiger das Icon betritt bzw. verlässt.
+            // Die eigentliche Anzeige des Custom-Tooltips verzögern wir zusätzlich konfigurierbar.
+            _trayToolTipDelayTimer.Tick += TrayToolTipDelayTimer_Tick;
 
             if (!_configService.ConfigExists())
             {
@@ -520,7 +526,52 @@ namespace ZabbixTrayMonitor
             if (_problemsWindow?.IsVisible == true)
             {
                 e.Handled = true;
+                return;
             }
+
+            var config = _configService.Load();
+            var delayMilliseconds = Math.Max(0, config.TrayToolTipDelayMilliseconds);
+
+            // 0 ms bedeutet: Hardcodet darf den Tooltip wie gewohnt sofort öffnen.
+            if (delayMilliseconds == 0)
+                return;
+
+            // Das automatische Öffnen zunächst unterdrücken. Sobald Windows meldet, dass
+            // die Maus das Tray-Icon wieder verlassen hat, wird der Timer abgebrochen.
+            e.Handled = true;
+            _trayToolTipOpenRequested = true;
+
+            _trayToolTipDelayTimer.Stop();
+            _trayToolTipDelayTimer.Interval = TimeSpan.FromMilliseconds(delayMilliseconds);
+            _trayToolTipDelayTimer.Start();
+        }
+
+        private void TrayIcon_PreviewTrayToolTipClose(object sender, RoutedEventArgs e)
+        {
+            // Native Close-Meldung nicht blockieren: Sie schließt auch einen von uns
+            // nach Ablauf der Verzögerung geöffneten Custom-Tooltip zuverlässig.
+            _trayToolTipOpenRequested = false;
+            _trayToolTipDelayTimer.Stop();
+        }
+
+        private void TrayToolTipDelayTimer_Tick(object? sender, EventArgs e)
+        {
+            _trayToolTipDelayTimer.Stop();
+
+            if (!_trayToolTipOpenRequested || _problemsWindow?.IsVisible == true)
+                return;
+
+            try
+            {
+                if (TrayIcon.ContextMenu?.IsOpen == true)
+                    return;
+
+                if (TrayIcon.TrayToolTipResolved is not null)
+                {
+                    TrayIcon.TrayToolTipResolved.IsOpen = true;
+                }
+            }
+            catch { }
         }
 
         private void UpdateTrayToolTip(string fullText)
@@ -549,6 +600,9 @@ namespace ZabbixTrayMonitor
 
         private void HideTrayToolTip()
         {
+            _trayToolTipOpenRequested = false;
+            _trayToolTipDelayTimer.Stop();
+
             try
             {
                 if (TrayIcon.TrayToolTipResolved is not null)

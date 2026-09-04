@@ -93,6 +93,7 @@ namespace ZabbixTrayMonitor
             IgnoreCertificateErrorsCheckBox.IsChecked = config.IgnoreCertificateErrors;
             DarkModeCheckBox.IsChecked = config.UseDarkMode;
             PollIntervalSecondsTextBox.Text = config.PollIntervalSeconds.ToString();
+            TrayToolTipDelayMillisecondsTextBox.Text = config.TrayToolTipDelayMilliseconds.ToString();
 
             if (!string.IsNullOrWhiteSpace(config.ZabbixUrl))
                 ZabbixUrlTextBox.Text = config.ZabbixUrl;
@@ -174,6 +175,9 @@ namespace ZabbixTrayMonitor
             if (!TryReadPollInterval(out var pollIntervalSeconds))
                 return;
 
+            if (!TryReadTrayToolTipDelay(out var trayToolTipDelayMilliseconds))
+                return;
+
             if (!TryReadSeverityThresholds(out var warningThreshold, out var errorThreshold))
                 return;
 
@@ -200,6 +204,7 @@ namespace ZabbixTrayMonitor
             existingConfig.ZabbixApiEndpoint = zabbixApiEndpoint;
             existingConfig.ZabbixDashboardUrl = dashboardUrl;
             existingConfig.PollIntervalSeconds = pollIntervalSeconds;
+            existingConfig.TrayToolTipDelayMilliseconds = trayToolTipDelayMilliseconds;
             existingConfig.IgnoreCertificateErrors = IgnoreCertificateErrorsCheckBox.IsChecked == true;
             existingConfig.UseDarkMode = DarkModeCheckBox.IsChecked == true;
             existingConfig.WarningSeverityThreshold = warningThreshold;
@@ -378,6 +383,41 @@ namespace ZabbixTrayMonitor
 
                 PollIntervalSecondsTextBox.Focus();
                 PollIntervalSecondsTextBox.SelectAll();
+
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool TryReadTrayToolTipDelay(out int delayMilliseconds)
+        {
+            if (!int.TryParse(TrayToolTipDelayMillisecondsTextBox.Text.Trim(), out delayMilliseconds))
+            {
+                MessageBox.Show(
+                    "Bei der Tooltip-Verzögerung eine gültige Zahl eingeben",
+                    "Fehler",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+
+                TrayToolTipDelayMillisecondsTextBox.Focus();
+                TrayToolTipDelayMillisecondsTextBox.SelectAll();
+
+                return false;
+            }
+
+            if (delayMilliseconds < 0 || delayMilliseconds > 10000)
+            {
+                MessageBox.Show(
+                    "Die Tooltip-Verzögerung muss zwischen 0 und 10000 ms liegen",
+                    "Fehler",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+
+                TrayToolTipDelayMillisecondsTextBox.Focus();
+                TrayToolTipDelayMillisecondsTextBox.SelectAll();
 
                 return false;
             }

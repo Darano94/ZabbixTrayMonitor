@@ -9,6 +9,7 @@ namespace ZabbixTrayMonitor.Models
         public string ZabbixDashboardUrl { get; set; } = "";
 
         public int PollIntervalSeconds { get; set; } = 60;
+        public int TrayToolTipDelayMilliseconds { get; set; } = 250;
         public bool IgnoreCertificateErrors { get; set; } = false; // Ignoriert SSL Fehler zB. bei self-signed Zertifikaten
         public bool UseDarkMode { get; set; } = true;
 

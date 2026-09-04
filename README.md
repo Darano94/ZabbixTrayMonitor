@@ -11,6 +11,7 @@ Je nach Zustand zeigt das Tray-Icon direkt an, ob alles fehlerfrei ist, Warnunge
 - Tray-Status für OK, Warnung, Fehler und unbekannten Zustand
 - Automatische Aktualisierung über konfigurierbares Abfrageintervall
 - Kompakter Tooltip mit den wichtigsten aktuellen Problemen
+- Einstellbare Verzögerung bis zum Öffnen des Tray-Tooltips
 - Problemfenster mit Host, Zeit, Meldung und überwachtem Objekt
 - Dark- und Light-Mode
 - API-Token im Windows Credential Manager
@@ -25,7 +26,7 @@ Je nach Zustand zeigt das Tray-Icon direkt an, ob alles fehlerfrei ist, Warnunge
 - Konfigurierbare Standardnachricht für Bestätigungen/Unterdrückungen
 - Nachricht kann pro Aktion direkt im Kontextmenü überschrieben werden
 - Unterdrückte Probleme können wahlweise weiterhin angezeigt werden
-- Optionaler automatischer Refresh nach einer Alarmaktion
+- Optionaler automatischer Refresh nach einer Alarmaktion inklusive verzögertem Folge-Refresh
 
 ## Download
 
@@ -77,6 +78,7 @@ Beispiel:
   "ZabbixDashboardUrl": "https://zabbix.home/zabbix.php?action=dashboard.view&dashboardid=407",
   "ZabbixApiEndpoint": "/api_jsonrpc.php",
   "PollIntervalSeconds": 60,
+  "TrayToolTipDelayMilliseconds": 250,
   "IgnoreCertificateErrors": true,
   "UseDarkMode": true,
   "ShowSuppressedProblems": false,

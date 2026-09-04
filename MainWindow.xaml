@@ -89,7 +89,8 @@
             ToolTipText="Zabbix Tray Monitor"
             TrayLeftMouseUp="TrayIcon_ShowProblems_Click"
             TrayRightMouseDown="TrayIcon_RightMouseDown"
-            PreviewTrayToolTipOpen="TrayIcon_PreviewTrayToolTipOpen">
+            PreviewTrayToolTipOpen="TrayIcon_PreviewTrayToolTipOpen"
+            PreviewTrayToolTipClose="TrayIcon_PreviewTrayToolTipClose">
             <tb:TaskbarIcon.TrayToolTip>
                 <Border Background="#EB202020"
                         BorderBrush="#78FFFFFF"

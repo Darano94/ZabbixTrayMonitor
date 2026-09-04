@@ -15,6 +15,7 @@ namespace ZabbixTrayMonitor.Views
         private bool _isRefreshing = false; // verhindert mehrfaches paralleles Aktualisieren
         private bool _isProblemActionRunning = false; // verhindert doppelte Bestätigen-/Unterdrücken-Aktionen
         private bool _keepOpenOnDeactivate = false; // z. B. während "Unterdrücken bis..."-Dialog geöffnet ist
+        private static readonly TimeSpan ProblemActionFollowUpRefreshDelay = TimeSpan.FromSeconds(4);
 
         private readonly Func<Task<List<ZabbixProblem>>> _refreshAction; // Funktion, die von extern übergeben wird damit Logik nicht in der View liegt
         private readonly Action _openDashboardAction; // Funktion, die von extern übergeben wird damit Logik nicht in der View liegt
@@ -383,8 +384,14 @@ namespace ZabbixTrayMonitor.Views
 
                 if (config.RefreshAfterProblemAction)
                 {
+                    // Sofort aktualisieren, damit Zeitstempel und sonstige Zustände direkt frisch sind.
                     var problems = await _refreshAction();
                     UpdateProblems(problems);
+
+                    // Zabbix liefert den neuen Suppression-Status nach event.acknowledge teilweise
+                    // erst wenige Sekunden später über problem.get zurück. Deshalb folgt noch ein
+                    // zweiter Refresh, ohne die Benutzeraktion für mehrere Sekunden zu blockieren.
+                    _ = RefreshAfterProblemActionPropagationAsync();
                 }
             }
             catch (Exception ex)
@@ -401,6 +408,26 @@ namespace ZabbixTrayMonitor.Views
             {
                 _isProblemActionRunning = false;
                 SetLoading(false);
+            }
+        }
+
+        private async Task RefreshAfterProblemActionPropagationAsync()
+        {
+            try
+            {
+                await Task.Delay(ProblemActionFollowUpRefreshDelay);
+
+                var config = _configService.Load();
+                if (!config.RefreshAfterProblemAction)
+                    return;
+
+                var problems = await _refreshAction();
+                UpdateProblems(problems);
+            }
+            catch
+            {
+                // Die eigentliche Alarmaktion und der erste Refresh waren bereits erfolgreich.
+                // Ein optionaler Follow-up-Refresh soll deshalb keine nachträgliche Fehlermeldung erzeugen.
             }
         }
 
