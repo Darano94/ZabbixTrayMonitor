@@ -86,9 +86,26 @@
         <tb:TaskbarIcon 
             x:Name="TrayIcon" 
             IconSource="/Assets/tray-unknown.ico"
+            ToolTipText="Zabbix Tray Monitor"
             TrayLeftMouseUp="TrayIcon_ShowProblems_Click"
-            TrayMouseMove="TrayIcon_TrayMouseMove"
-            TrayRightMouseDown="TrayIcon_RightMouseDown">
+            TrayRightMouseDown="TrayIcon_RightMouseDown"
+            PreviewTrayToolTipOpen="TrayIcon_PreviewTrayToolTipOpen">
+            <tb:TaskbarIcon.TrayToolTip>
+                <Border Background="#EB202020"
+                        BorderBrush="#78FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="10,8">
+                    <TextBlock x:Name="TrayToolTipTextBlock"
+                               Text="Zabbix Tray Monitor&#x0a;---------&#x0a;Initialisiere..."
+                               Foreground="White"
+                               FontFamily="Segoe UI"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               MaxWidth="520" />
+                </Border>
+            </tb:TaskbarIcon.TrayToolTip>
+
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu Style="{StaticResource TrayContextMenuStyle}">
                     <MenuItem Header="Aktualisieren"

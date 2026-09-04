@@ -1,9 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using ZabbixTrayMonitor.Services;
@@ -26,29 +23,6 @@ namespace ZabbixTrayMonitor
         private string? _lastRefreshError;
         private bool _isRefreshing = false;
         private bool _ignoreNextTrayLeftClick = false;
-        // Unterdrücke das Öffnen des eigenen Tooltips kurz nachdem das Kontextmenü geöffnet wurde
-        private DateTime _suppressTrayToolTipUntil = DateTime.MinValue;
-
-        private string? _lastToolTipFullText;
-        private Window? _trayToolTipWindow;
-        private Border? _trayToolTipBorder;
-        private TextBlock? _trayToolTipTextBlock;
-        private bool _trayToolTipVisible = false;
-        private NativePoint? _lastTrayMousePosition;
-        private readonly DispatcherTimer _trayToolTipOpenTimer = new();
-        private readonly DispatcherTimer _trayToolTipCloseTimer = new();
-
-        private const int TrayMouseLeaveTolerancePixels = 48;
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct NativePoint
-        {
-            public int X;
-            public int Y;
-        }
-
-        [DllImport("user32.dll")]
-        private static extern bool GetCursorPos(out NativePoint lpPoint);
 
         public MainWindow()
         {
@@ -56,23 +30,10 @@ namespace ZabbixTrayMonitor
 
             Hide(); // Mainframe ausblenden
 
-            // Native Tooltips deaktivieren, wir nutzen eigenes Tooltip-Fenster
-            try
-            {
-                ClearNativeTrayToolTip();
-                _lastToolTipFullText = "Zabbix Tray Monitor\n---------\nInitialisiere...";
-                EnsureTrayToolTipInstance(_lastToolTipFullText);
-            }
-            catch { }
-
-            _trayToolTipOpenTimer.Interval = TimeSpan.FromMilliseconds(350);
-            _trayToolTipOpenTimer.Tick += TrayToolTipOpenTimer_Tick;
-
-            _trayToolTipCloseTimer.Interval = TimeSpan.FromMilliseconds(100);
-            _trayToolTipCloseTimer.Tick += TrayToolTipCloseTimer_Tick;
-            _trayToolTipCloseTimer.Start();
-
-            Application.Current.Deactivated += (_, _) => HideTrayToolTip();
+            // Der Custom-Tooltip wird direkt vom TaskbarIcon gesteuert. Dadurch stammen
+            // Öffnen und Schließen vom tatsächlichen Windows-Tray-Icon statt aus einer
+            // eigenen Cursor-Abstandslogik.
+            UpdateTrayToolTip("Zabbix Tray Monitor\n---------\nInitialisiere...");
 
             // RefreshTimer für Probleme initialisieren abhängig vom Pollintervall in den Einstellungen
             _refreshTimer.Tick += async (_, _) => await RefreshProblemsAsync();
@@ -168,9 +129,6 @@ namespace ZabbixTrayMonitor
         private void TrayIcon_RightMouseDown(object sender, RoutedEventArgs e)
         {
             HideTrayToolTip();
-
-            // Tooltip kurz unterdrücken, damit er beim Kontextmenü nicht dazwischenfunkt
-            _suppressTrayToolTipUntil = DateTime.Now.AddSeconds(1);
 
             // Wenn Problemfenster offen ist wieder schließen und verhindern,
             // dass ein anschließender Linksklick das Fenster sofort wieder öffnet
@@ -319,9 +277,6 @@ namespace ZabbixTrayMonitor
 
             try
             {
-                // Native Tooltips deaktivieren, wir setzen unten nur noch unser eigenes Tooltip-Fenster
-                ClearNativeTrayToolTip();
-
                 var config = _configService.Load();
                 var credSuffix = string.IsNullOrWhiteSpace(config.CredentialTargetSuffix) ? "ApiToken" : config.CredentialTargetSuffix;
                 var token = CredentialService.GetTokenForApp(config.AppName, credSuffix);
@@ -559,248 +514,49 @@ namespace ZabbixTrayMonitor
             Application.Current.Shutdown();
         }
 
-        private void TrayIcon_TrayMouseMove(object sender, RoutedEventArgs e)
+        private void TrayIcon_PreviewTrayToolTipOpen(object sender, RoutedEventArgs e)
         {
-            if (GetCursorPos(out var point))
-            {
-                _lastTrayMousePosition = point;
-            }
-
-            // Wenn das ProblemsWindow geöffnet ist, kein Tooltip starten
+            // Während das Problemfenster sichtbar ist, keinen zusätzlichen Tray-Tooltip öffnen.
             if (_problemsWindow?.IsVisible == true)
-                return;
-
-            if (_trayToolTipVisible)
-                return;
-
-            if (_trayToolTipOpenTimer.IsEnabled)
-                return;
-
-            _trayToolTipOpenTimer.Start();
-        }
-
-        private void TrayToolTipOpenTimer_Tick(object? sender, EventArgs e)
-        {
-            _trayToolTipOpenTimer.Stop();
-
-            // Wenn das ProblemsWindow geöffnet ist, Tooltip nicht zeigen
-            if (_problemsWindow?.IsVisible == true)
-                return;
-
-            // Wenn kurz zuvor das Kontextmenü geöffnet wurde, Tooltip nicht zeigen
-            if (DateTime.Now < _suppressTrayToolTipUntil)
-                return;
-
-            if (string.IsNullOrWhiteSpace(_lastToolTipFullText))
-                return;
-
-            if (_lastTrayMousePosition == null)
-                return;
-
-            if (!GetCursorPos(out var currentPosition))
-                return;
-
-            var lastPosition = _lastTrayMousePosition.Value;
-
-            var distanceX = Math.Abs(currentPosition.X - lastPosition.X);
-            var distanceY = Math.Abs(currentPosition.Y - lastPosition.Y);
-
-            // Wenn die Maus während der Verzögerung schon weg ist, keinen Tooltip öffnen
-            if (distanceX > TrayMouseLeaveTolerancePixels || distanceY > TrayMouseLeaveTolerancePixels)
-                return;
-
-            ShowTrayToolTip(currentPosition);
-        }
-
-        private void TrayToolTipCloseTimer_Tick(object? sender, EventArgs e)
-        {
-            if (!_trayToolTipVisible && !_trayToolTipOpenTimer.IsEnabled)
-                return;
-
-            if (_lastTrayMousePosition == null)
-                return;
-
-            if (!GetCursorPos(out var currentPosition))
-                return;
-
-            var lastPosition = _lastTrayMousePosition.Value;
-
-            var distanceX = Math.Abs(currentPosition.X - lastPosition.X);
-            var distanceY = Math.Abs(currentPosition.Y - lastPosition.Y);
-
-            // Sobald die Maus deutlich vom TrayIcon weg ist, Tooltip schließen
-            if (distanceX > TrayMouseLeaveTolerancePixels || distanceY > TrayMouseLeaveTolerancePixels)
             {
-                HideTrayToolTip();
+                e.Handled = true;
             }
         }
 
         private void UpdateTrayToolTip(string fullText)
         {
-            _lastToolTipFullText = fullText;
-
             try
             {
-                ClearNativeTrayToolTip();
-                EnsureTrayToolTipInstance(fullText);
+                var tooltipText = string.IsNullOrWhiteSpace(fullText)
+                    ? "Zabbix Tray Monitor"
+                    : fullText;
 
-                if (_trayToolTipTextBlock != null)
-                {
-                    _trayToolTipTextBlock.Text = fullText;
-                }
+                TrayToolTipTextBlock.Text = tooltipText;
+
+                // Fallback für Systeme, auf denen kein Custom-Tooltip verfügbar ist.
+                // Beim gesetzten TrayToolTip zeigt Hardcodet auf aktuellen Windows-Versionen
+                // weiterhin den WPF-Custom-Tooltip an.
+                var firstLine = tooltipText
+                    .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                    .FirstOrDefault();
+
+                TrayIcon.ToolTipText = string.IsNullOrWhiteSpace(firstLine)
+                    ? "Zabbix Tray Monitor"
+                    : firstLine;
             }
             catch { }
-        }
-
-        private void ShowTrayToolTip(NativePoint cursorPosition)
-        {
-            if (string.IsNullOrWhiteSpace(_lastToolTipFullText))
-                return;
-
-            // Wenn Kontextmenü offen ist oder wir gerade die Anzeige unterdrücken, nichts tun
-            try
-            {
-                if (TrayIcon?.ContextMenu?.IsOpen == true)
-                    return;
-            }
-            catch { }
-
-            if (DateTime.Now < _suppressTrayToolTipUntil)
-                return;
-
-            // Wenn das ProblemsWindow geöffnet ist, kein Tooltip anzeigen
-            if (_problemsWindow?.IsVisible == true)
-                return;
-
-            try
-            {
-                ClearNativeTrayToolTip();
-                EnsureTrayToolTipInstance(_lastToolTipFullText);
-
-                if (_trayToolTipWindow == null)
-                    return;
-
-                if (_trayToolTipTextBlock != null)
-                {
-                    _trayToolTipTextBlock.Text = _lastToolTipFullText;
-                }
-
-                _trayToolTipWindow.Show();
-                _trayToolTipWindow.UpdateLayout();
-
-                var position = ConvertScreenPixelToWpfPoint(cursorPosition);
-
-                var tooltipWidth = _trayToolTipWindow.ActualWidth;
-                var tooltipHeight = _trayToolTipWindow.ActualHeight;
-
-                var left = position.X - tooltipWidth + 24;
-                var top = position.Y - tooltipHeight - 18;
-
-                var workArea = SystemParameters.WorkArea;
-
-                if (left < workArea.Left)
-                    left = workArea.Left + 4;
-
-                if (top < workArea.Top)
-                    top = workArea.Top + 4;
-
-                if (left + tooltipWidth > workArea.Right)
-                    left = workArea.Right - tooltipWidth - 4;
-
-                if (top + tooltipHeight > workArea.Bottom)
-                    top = workArea.Bottom - tooltipHeight - 4;
-
-                _trayToolTipWindow.Left = left;
-                _trayToolTipWindow.Top = top;
-
-                _trayToolTipVisible = true;
-            }
-            catch
-            {
-                _trayToolTipVisible = false;
-            }
         }
 
         private void HideTrayToolTip()
         {
-            _trayToolTipOpenTimer.Stop();
-
             try
             {
-                _trayToolTipWindow?.Hide();
+                if (TrayIcon.TrayToolTipResolved is not null)
+                {
+                    TrayIcon.TrayToolTipResolved.IsOpen = false;
+                }
             }
             catch { }
-
-            _trayToolTipVisible = false;
-        }
-
-        private void ClearNativeTrayToolTip()
-        {
-            try
-            {
-                TrayIcon.ToolTipText = null;
-                TrayIcon.ToolTip = null;
-                TrayIcon.TrayToolTip = null;
-            }
-            catch { }
-        }
-
-        private void EnsureTrayToolTipInstance(string text)
-        {
-            if (_trayToolTipWindow != null && _trayToolTipBorder != null && _trayToolTipTextBlock != null)
-            {
-                _trayToolTipTextBlock.Text = text;
-                return;
-            }
-
-            _trayToolTipTextBlock = new TextBlock
-            {
-                Text = text,
-                Foreground = Brushes.White,
-                FontSize = 12,
-                FontFamily = new FontFamily("Segoe UI"),
-                TextWrapping = TextWrapping.Wrap,
-                MaxWidth = 520
-            };
-
-            _trayToolTipBorder = new Border
-            {
-                Background = new SolidColorBrush(Color.FromArgb(235, 32, 32, 32)),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(120, 255, 255, 255)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(10, 8, 10, 8),
-                Child = _trayToolTipTextBlock
-            };
-
-            _trayToolTipWindow = new Window
-            {
-                Content = _trayToolTipBorder,
-                WindowStyle = WindowStyle.None,
-                AllowsTransparency = true,
-                Background = Brushes.Transparent,
-                ShowInTaskbar = false,
-                Topmost = true,
-                ResizeMode = ResizeMode.NoResize,
-                SizeToContent = SizeToContent.WidthAndHeight,
-                Focusable = false,
-                IsHitTestVisible = false
-            };
-        }
-
-        private Point ConvertScreenPixelToWpfPoint(NativePoint point)
-        {
-            try
-            {
-                var source = PresentationSource.FromVisual(this);
-                var transform = source?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
-
-                return transform.Transform(new Point(point.X, point.Y));
-            }
-            catch
-            {
-                return new Point(point.X, point.Y);
-            }
         }
 
         private void TrayIcon_Info_Click(object sender, RoutedEventArgs e)

@@ -1,35 +1,43 @@
 # Zabbix Tray Monitor
 
-Kleiner Windows Tray Client fuer Zabbix.
+Kleiner Windows Tray Client für Zabbix.
 
-Die Anwendung laeuft im Windows System Tray und zeigt den aktuellen Zabbix-Status ueber ein farbiges Tray-Icon, einen Tooltip und ein kleines Problemfenster an.
+Die Anwendung läuft im Windows System Tray und zeigt den aktuellen Zabbix-Status über ein farbiges Tray-Icon, einen Tooltip und ein kleines Problemfenster an.
 
 Je nach Zustand zeigt das Tray-Icon direkt an, ob alles fehlerfrei ist, Warnungen vorhanden sind oder Fehler vorliegen. Tooltip und Problemfenster listen die aktuellen relevanten Zabbix-Probleme auf.
 
 ## Funktionen
 
-- Tray-Status fuer OK, Warnung, Fehler und unbekannten Zustand
-- Automatische Aktualisierung ueber konfigurierbares Abfrageintervall
+- Tray-Status für OK, Warnung, Fehler und unbekannten Zustand
+- Automatische Aktualisierung über konfigurierbares Abfrageintervall
 - Kompakter Tooltip mit den wichtigsten aktuellen Problemen
-- Problemfenster mit Host, Zeit, Meldung und ueberwachtem Objekt
+- Problemfenster mit Host, Zeit, Meldung und überwachtem Objekt
 - Dark- und Light-Mode
 - API-Token im Windows Credential Manager
 - Alarmbearbeitung direkt im Problemfenster:
-  - Nur bestaetigen
-  - Fuer 5 Minuten unterdruecken
-  - Fuer 15 Minuten unterdruecken
-  - Fuer 1 Stunde unterdruecken
-  - Fuer 3 Stunden unterdruecken
-  - Fuer 1 Tag unterdruecken
-  - Unterdruecken bis zu einem frei waehlbaren Datum/Zeitpunkt
-- Konfigurierbare Standardnachricht fuer Bestaetigungen/Unterdrueckungen
-- Nachricht kann pro Aktion direkt im Kontextmenue ueberschrieben werden
-- Unterdrueckte Probleme koennen wahlweise weiterhin angezeigt werden
+  - Nur bestätigen
+  - Für 5 Minuten unterdrücken
+  - Für 15 Minuten unterdrücken
+  - Für 1 Stunde unterdrücken
+  - Für 3 Stunden unterdrücken
+  - Für 1 Tag unterdrücken
+  - Unterdrücken bis zu einem frei wählbaren Datum/Zeitpunkt
+- Konfigurierbare Standardnachricht für Bestätigungen/Unterdrückungen
+- Nachricht kann pro Aktion direkt im Kontextmenü überschrieben werden
+- Unterdrückte Probleme können wahlweise weiterhin angezeigt werden
 - Optionaler automatischer Refresh nach einer Alarmaktion
 
 ## Download
 
 [![Download](https://img.shields.io/badge/Download-Releases-blue)](https://github.com/Darano94/ZabbixTrayMonitor/releases)
+
+## Installation
+
+1. Aktuelle Release-ZIP herunterladen und entpacken.
+2. `ZabbixTrayMonitor.exe` starten.
+3. Beim ersten Start die **Einstellungen** öffnen.
+4. **Zabbix URL** und **API Token** eintragen.
+5. Mit **Testen** die Verbindung prüfen und anschließend **Speichern**.
 
 ## Screenshots
 
@@ -85,16 +93,6 @@ Beispiel:
 }
 ```
 
-Der API Token wird nicht in der `config.json` gespeichert.
-
-Der Token wird im Windows Credential Manager gespeichert.
-
-Beispiel:
-
-```text
-ZabbixTrayMonitor.ApiToken
-```
-
 ## Severity Mapping
 
 Die Zabbix API liefert Severity-Werte zwischen 0 und 5:
@@ -112,7 +110,7 @@ Die Zabbix API liefert Severity-Werte zwischen 0 und 5:
 
 `ErrorSeverityThreshold` bestimmt, ab welchem Severity-Wert ein Problem als Fehler gewertet wird.
 
-Standardmaessig:
+Standardmäßig:
 
 ```text
 Severity 0-1 -> ignoriert
@@ -122,13 +120,13 @@ Severity 4-5 -> Fehler
 
 ## Alarmbearbeitung
 
-Ein Rechtsklick auf ein Problem oeffnet das Menue `Alarm bearbeiten`.
+Ein Rechtsklick auf ein Problem öffnet das Menü `Alarm bearbeiten`.
 
-`Nur bestaetigen...` fuehrt in Zabbix `event.acknowledge` mit Bestaetigung und Nachricht aus.
+`Nur bestätigen...` führt in Zabbix `event.acknowledge` mit Bestätigung und Nachricht aus.
 
-Die zeitlich begrenzten Unterdrueckungen bestaetigen das Event, fuegen die Nachricht hinzu und setzen eine Unterdrueckung bis zum gewaehlten Zeitpunkt.
+Die zeitlich begrenzten Unterdrückungen bestätigen das Event, fügen die Nachricht hinzu und setzen eine Unterdrückung bis zum gewählten Zeitpunkt.
 
-Wenn `ShowSuppressedProblems` auf `false` steht, werden unterdrueckte Probleme aus Tray-Status, Tooltip und Problemfenster ausgeblendet.
+Wenn `ShowSuppressedProblems` auf `false` steht, werden unterdrückte Probleme aus Tray-Status, Tooltip und Problemfenster ausgeblendet.
 
 ## API
 
@@ -140,9 +138,9 @@ Standard API-Pfad:
 /api_jsonrpc.php
 ```
 
-Authentifizierung erfolgt ueber Bearer Token.
+Authentifizierung erfolgt über Bearer Token.
 
-Fuer die Problemliste werden die aktuellen Probleme gesammelt abgefragt und mit Hostnamen sowie Trigger-/Item-Informationen angereichert. Es wird nicht pro Problem ein einzelner API-Request ausgefuehrt.
+Für die Problemliste werden die aktuellen Probleme gesammelt abgefragt und mit Hostnamen sowie Trigger-/Item-Informationen angereichert. Es wird nicht pro Problem ein einzelner API-Request ausgeführt.
 
 Genutzte Zabbix API-Methoden:
 
@@ -154,13 +152,13 @@ event.acknowledge
 apiinfo.version
 ```
 
-Der API Token braucht die benoetigten Rechte fuer diese Methoden. Fuer die Alarmbearbeitung muessen ausserdem die Zabbix-Berechtigungen des Token-Benutzers das Bestaetigen bzw. Unterdruecken der betreffenden Events erlauben.
+Der Benutzer hinter dem API-Token muss über die benötigten Zabbix-Berechtigungen verfügen. Für die Alarmbearbeitung muss das Bestätigen bzw. Unterdrücken der betreffenden Events erlaubt sein.
 
 ## Bibliotheken
 
 ### Hardcodet.NotifyIcon.Wpf
 
-WPF-Unterstuetzung fuer Windows System Tray Icons.
+WPF-Unterstützung für Windows System Tray Icons.
 
 ### CredentialManagement
 
